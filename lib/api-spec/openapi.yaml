@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: federation
+    description: Federated imaging network operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,91 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /network/overview:
+    get:
+      operationId: getNetworkOverview
+      tags: [federation]
+      summary: Get the current network overview
+      responses:
+        "200":
+          description: Current federation overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NetworkOverview"
+  /network/nodes:
+    get:
+      operationId: getNetworkNodes
+      tags: [federation]
+      summary: List participating client nodes
+      responses:
+        "200":
+          description: Ten participating client nodes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClientNode"
+  /network/events:
+    get:
+      operationId: getNetworkEvents
+      tags: [federation]
+      summary: List recent network activity events
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        "200":
+          description: Recent activity events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityEvent"
+  /network/agent/assessment:
+    get:
+      operationId: getAgentAssessment
+      tags: [federation]
+      summary: Get the latest AI federation assessment
+      responses:
+        "200":
+          description: Current agent assessment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentAssessment"
+  /network/actions/{actionId}/resolve:
+    post:
+      operationId: resolveAgentAction
+      tags: [federation]
+      summary: Approve or dismiss an agent recommendation
+      parameters:
+        - name: actionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActionResolutionInput"
+      responses:
+        "200":
+          description: Resolved agent action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActionResolution"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +120,171 @@ components:
           type: string
       required:
         - status
+    NetworkOverview:
+      type: object
+      required:
+        - networkName
+        - round
+        - roundStatus
+        - connectedSites
+        - totalSites
+        - globalAuc
+        - globalAccuracy
+        - privacyBudget
+        - privacyStatus
+        - modelVersion
+        - lastUpdated
+      properties:
+        networkName:
+          type: string
+        round:
+          type: integer
+        roundStatus:
+          type: string
+        connectedSites:
+          type: integer
+        totalSites:
+          type: integer
+        globalAuc:
+          type: number
+        globalAccuracy:
+          type: number
+        privacyBudget:
+          type: number
+        privacyStatus:
+          type: string
+        modelVersion:
+          type: string
+        lastUpdated:
+          type: string
+    ClientNode:
+      type: object
+      required:
+        - id
+        - name
+        - shortName
+        - region
+        - modality
+        - status
+        - dataVolume
+        - localAuc
+        - privacyStatus
+        - lastSeen
+        - x
+        - y
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        shortName:
+          type: string
+        region:
+          type: string
+        modality:
+          type: string
+        status:
+          type: string
+        dataVolume:
+          type: integer
+        localAuc:
+          type: number
+        privacyStatus:
+          type: string
+        lastSeen:
+          type: string
+        x:
+          type: number
+        y:
+          type: number
+    ActivityEvent:
+      type: object
+      required:
+        - id
+        - timestamp
+        - actor
+        - type
+        - title
+        - detail
+        - severity
+        - round
+      properties:
+        id:
+          type: string
+        timestamp:
+          type: string
+        actor:
+          type: string
+        type:
+          type: string
+        title:
+          type: string
+        detail:
+          type: string
+        severity:
+          type: string
+        round:
+          type: integer
+        nodeId:
+          type: ["string", "null"]
+    AgentAssessment:
+      type: object
+      required:
+        - id
+        - headline
+        - summary
+        - recommendation
+        - confidence
+        - impact
+        - risk
+        - evidence
+        - status
+        - createdAt
+      properties:
+        id:
+          type: string
+        headline:
+          type: string
+        summary:
+          type: string
+        recommendation:
+          type: string
+        confidence:
+          type: number
+        impact:
+          type: string
+        risk:
+          type: string
+        evidence:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+    ActionResolutionInput:
+      type: object
+      required:
+        - decision
+      properties:
+        decision:
+          type: string
+          enum: [approved, dismissed]
+    ActionResolution:
+      type: object
+      required:
+        - actionId
+        - decision
+        - resolvedAt
+        - message
+      properties:
+        actionId:
+          type: string
+        decision:
+          type: string
+        resolvedAt:
+          type: string
+        message:
+          type: string
 

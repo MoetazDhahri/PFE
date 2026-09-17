@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Federated Imaging Network"
+description = "An interactive federated-learning operations center for medical imaging research, with a 10-site network topology, live training logs, AI assessments, and auditable approvals."
+version = "1.0.0"
+id = "artifacts/federated-imaging-network"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 26219
+
+[services.development]
+run = "pnpm --filter @workspace/federated-imaging-network run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/federated-imaging-network", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/federated-imaging-network/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "26219"
+BASE_PATH = "/"
