@@ -19,4 +19,5 @@ export interface ClientNode {
   lastSeen: string;
   x: number;
   y: number;
+  trackId: string;
 }

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap');
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @plugin "@tailwindcss/typography";
@@ -79,72 +79,44 @@
   --elevate-1: rgba(0, 0, 0, 0.03);
   --elevate-2: rgba(0, 0, 0, 0.08);
 
-  --background: 177 23% 94%;
-
-  --foreground: 204 43% 17%;
-
-  --border: 196 21% 83%;
-
-  --card: 180 25% 97%;
-
-  --card-foreground: 204 43% 17%;
-
-  --card-border: 196 21% 83%;
-
-  --sidebar: 204 43% 17%;
-
-  --sidebar-foreground: 177 23% 94%;
-
-  --sidebar-border: 204 35% 25%;
-
-  --sidebar-primary: 172 55% 43%;
-
-  --sidebar-primary-foreground: 204 43% 17%;
-
-  --sidebar-accent: 204 35% 24%;
-
-  --sidebar-accent-foreground: 177 23% 94%;
-
-  --sidebar-ring: 172 55% 43%;
-
-  --popover: 180 25% 97%;
-
-  --popover-foreground: 204 43% 17%;
-
-  --popover-border: 196 21% 83%;
-
-  --primary: 172 55% 43%;
-
-  --primary-foreground: 204 43% 17%;
-
-  --secondary: 191 25% 88%;
-
-  --secondary-foreground: 204 43% 17%;
-
-  --muted: 191 22% 89%;
-
-  --muted-foreground: 198 18% 42%;
-
-  --accent: 36 54% 58%;
-
-  --accent-foreground: 204 43% 17%;
-
-  --destructive: 3 63% 55%;
-
-  --destructive-foreground: 180 25% 97%;
-
-  --input: 196 21% 83%;
-  --ring: 172 55% 43%;
-  --chart-1: 172 55% 43%;
-  --chart-2: 36 54% 58%;
-  --chart-3: 204 43% 17%;
-  --chart-4: 191 48% 63%;
-  --chart-5: 3 63% 55%;
-
+  --background: 42 28% 94%;
+  --foreground: 201 31% 19%;
+  --border: 42 16% 82%;
+  --card: 42 34% 98%;
+  --card-foreground: 201 31% 19%;
+  --card-border: 42 16% 82%;
+  --sidebar: 201 31% 19%;
+  --sidebar-foreground: 42 34% 96%;
+  --sidebar-border: 201 24% 27%;
+  --sidebar-primary: 166 48% 48%;
+  --sidebar-primary-foreground: 201 31% 19%;
+  --sidebar-accent: 201 24% 27%;
+  --sidebar-accent-foreground: 42 34% 96%;
+  --sidebar-ring: 166 48% 48%;
+  --popover: 42 34% 98%;
+  --popover-foreground: 201 31% 19%;
+  --popover-border: 42 16% 82%;
+  --primary: 166 48% 42%;
+  --primary-foreground: 42 34% 98%;
+  --secondary: 42 20% 88%;
+  --secondary-foreground: 201 31% 19%;
+  --muted: 42 18% 88%;
+  --muted-foreground: 201 12% 47%;
+  --accent: 27 73% 58%;
+  --accent-foreground: 201 31% 19%;
+  --destructive: 5 67% 51%;
+  --destructive-foreground: 42 34% 98%;
+  --input: 42 16% 79%;
+  --ring: 166 48% 42%;
+  --chart-1: 166 48% 42%;
+  --chart-2: 27 73% 58%;
+  --chart-3: 201 31% 19%;
+  --chart-4: 183 44% 62%;
+  --chart-5: 5 67% 51%;
   --app-font-sans: 'Manrope', sans-serif;
   --app-font-serif: Georgia, serif;
   --app-font-mono: 'DM Mono', monospace;
-  --radius: 0.8rem;
+  --radius: 0.7rem;
   --shadow-2xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0); /*replace with H S L */
   --shadow-xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0); /*replace with H S L */
   --shadow-sm:
@@ -228,55 +200,31 @@
   --elevate-1: rgba(255, 255, 255, 0.04);
   --elevate-2: rgba(255, 255, 255, 0.09);
 
-  --background: 204 43% 17%;
-
-  --foreground: 177 23% 94%;
-
-  --border: 204 35% 27%;
-
-  --card: 204 38% 21%;
-
-  --card-foreground: 177 23% 94%;
-
-  --card-border: 204 35% 28%;
-
-  --sidebar: 204 45% 12%;
-
-  --sidebar-foreground: 177 23% 94%;
-
-  --sidebar-border: 204 35% 23%;
-
-  --sidebar-primary: 172 55% 43%;
-
-  --sidebar-primary-foreground: 204 43% 17%;
-
-  --sidebar-accent: 204 35% 23%;
-
-  --sidebar-accent-foreground: 177 23% 94%;
-
-  --sidebar-ring: 172 55% 43%;
-
-  --popover: 204 38% 21%;
-
-  --popover-foreground: 177 23% 94%;
-
-  --popover-border: 204 35% 28%;
-
-  --primary: 172 55% 43%;
-
-  --primary-foreground: 204 43% 17%;
-
-  --secondary: 204 35% 27%;
-
-  --secondary-foreground: 177 23% 94%;
-
-  --muted: 204 35% 27%;
-
-  --muted-foreground: 190 18% 68%;
-
-  --accent: 36 54% 58%;
-
-  --accent-foreground: 204 43% 17%;
+  --background: 201 31% 19%;
+  --foreground: 42 34% 96%;
+  --border: 201 24% 28%;
+  --card: 201 27% 23%;
+  --card-foreground: 42 34% 96%;
+  --card-border: 201 24% 28%;
+  --sidebar: 201 35% 12%;
+  --sidebar-foreground: 42 34% 96%;
+  --sidebar-border: 201 24% 23%;
+  --sidebar-primary: 166 48% 48%;
+  --sidebar-primary-foreground: 201 31% 19%;
+  --sidebar-accent: 201 24% 25%;
+  --sidebar-accent-foreground: 42 34% 96%;
+  --sidebar-ring: 166 48% 48%;
+  --popover: 201 27% 23%;
+  --popover-foreground: 42 34% 96%;
+  --popover-border: 201 24% 28%;
+  --primary: 166 48% 48%;
+  --primary-foreground: 201 31% 19%;
+  --secondary: 201 24% 28%;
+  --secondary-foreground: 42 34% 96%;
+  --muted: 201 24% 28%;
+  --muted-foreground: 42 15% 71%;
+  --accent: 27 73% 58%;
+  --accent-foreground: 201 31% 19%;
 
   --destructive: 3 63% 55%;
 
@@ -320,6 +268,33 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+@layer base {
+  ::selection { background: hsl(var(--accent) / 0.28); }
+  button, a, input, select { -webkit-tap-highlight-color: transparent; }
+}
+
+@layer utilities {
+  .shell-grid {
+    background-image: linear-gradient(hsl(var(--border) / 0.35) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--border) / 0.35) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+  .signal-line { position: relative; }
+  .signal-line::after {
+    content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px;
+    background: linear-gradient(90deg, hsl(var(--primary)), transparent 65%);
+    transform-origin: left; animation: signal-draw 900ms ease-out both;
+  }
+  .fade-up { animation: fade-up 520ms cubic-bezier(.22, .8, .22, 1) both; }
+  .fade-up-2 { animation: fade-up 520ms 90ms cubic-bezier(.22, .8, .22, 1) both; }
+  .fade-up-3 { animation: fade-up 520ms 180ms cubic-bezier(.22, .8, .22, 1) both; }
+  .pulse-signal { animation: pulse-signal 2.8s ease-in-out infinite; }
+  .mono-label { font-family: var(--app-font-mono); letter-spacing: .09em; text-transform: uppercase; font-size: 10px; }
+}
+
+@keyframes fade-up { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes signal-draw { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes pulse-signal { 0%,100% { opacity: .45; } 50% { opacity: 1; } }
 
 /**
  * Using the elevate system.

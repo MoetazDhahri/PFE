@@ -7,6 +7,7 @@
  */
 
 export type GetNetworkEventsParams = {
+track?: string;
 /**
  * @minimum 1
  * @maximum 100

@@ -17,4 +17,5 @@ export interface ActivityEvent {
   round: number;
   /** @nullable */
   nodeId?: string | null;
+  trackId: string;
 }

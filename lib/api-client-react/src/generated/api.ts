@@ -24,9 +24,17 @@ import type {
   ActionResolutionInput,
   ActivityEvent,
   AgentAssessment,
+  AskAboutEventInput,
+  AskAboutEventResult,
   ClientNode,
+  GenerateAgentAssessmentInput,
+  GetAgentActionHistoryParams,
+  GetAgentAssessmentParams,
   GetNetworkEventsParams,
+  GetNetworkNodesParams,
+  GetNetworkOverviewParams,
   HealthStatus,
+  LearningTrack,
   NetworkOverview
 } from './api.schemas';
 
@@ -135,20 +143,27 @@ export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, 
 
 
 
-export const getGetNetworkOverviewUrl = () => {
+export const getGetNetworkOverviewUrl = (params?: GetNetworkOverviewParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/network/overview`
+  return stringifiedParams.length > 0 ? `/api/network/overview?${stringifiedParams}` : `/api/network/overview`
 }
 
 /**
  * @summary Get the current network overview
  */
-export const getNetworkOverview = async ( options?: Parameters<typeof customFetch>[1]): Promise<NetworkOverview> => {
+export const getNetworkOverview = async (params?: GetNetworkOverviewParams, options?: Parameters<typeof customFetch>[1]): Promise<NetworkOverview> => {
 
-  return customFetch<NetworkOverview>(getGetNetworkOverviewUrl(),
+  return customFetch<NetworkOverview>(getGetNetworkOverviewUrl(params),
   {
     ...options,
     method: 'GET'
@@ -161,23 +176,23 @@ export const getNetworkOverview = async ( options?: Parameters<typeof customFetc
 
 
 
-export const getGetNetworkOverviewQueryKey = () => {
+export const getGetNetworkOverviewQueryKey = (params?: GetNetworkOverviewParams,) => {
     return [
-    `/api/network/overview`
+    `/api/network/overview`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getGetNetworkOverviewQueryOptions = <TData = Awaited<ReturnType<typeof getNetworkOverview>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getNetworkOverview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetNetworkOverviewQueryOptions = <TData = Awaited<ReturnType<typeof getNetworkOverview>>, TError = ErrorType<unknown>>(params?: GetNetworkOverviewParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getNetworkOverview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetNetworkOverviewQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getGetNetworkOverviewQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getNetworkOverview>>> = ({ signal }) => getNetworkOverview({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getNetworkOverview>>> = ({ signal }) => getNetworkOverview(params, { signal, ...requestOptions });
 
 
 
@@ -195,11 +210,11 @@ export type GetNetworkOverviewQueryError = ErrorType<unknown>
  */
 
 export function useGetNetworkOverview<TData = Awaited<ReturnType<typeof getNetworkOverview>>, TError = ErrorType<unknown>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getNetworkOverview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: GetNetworkOverviewParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getNetworkOverview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetNetworkOverviewQueryOptions(options)
+  const queryOptions = getGetNetworkOverviewQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -212,20 +227,27 @@ export function useGetNetworkOverview<TData = Awaited<ReturnType<typeof getNetwo
 
 
 
-export const getGetNetworkNodesUrl = () => {
+export const getGetNetworkNodesUrl = (params?: GetNetworkNodesParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/network/nodes`
+  return stringifiedParams.length > 0 ? `/api/network/nodes?${stringifiedParams}` : `/api/network/nodes`
 }
 
 /**
  * @summary List participating client nodes
  */
-export const getNetworkNodes = async ( options?: Parameters<typeof customFetch>[1]): Promise<ClientNode[]> => {
+export const getNetworkNodes = async (params?: GetNetworkNodesParams, options?: Parameters<typeof customFetch>[1]): Promise<ClientNode[]> => {
 
-  return customFetch<ClientNode[]>(getGetNetworkNodesUrl(),
+  return customFetch<ClientNode[]>(getGetNetworkNodesUrl(params),
   {
     ...options,
     method: 'GET'
@@ -238,23 +260,23 @@ export const getNetworkNodes = async ( options?: Parameters<typeof customFetch>[
 
 
 
-export const getGetNetworkNodesQueryKey = () => {
+export const getGetNetworkNodesQueryKey = (params?: GetNetworkNodesParams,) => {
     return [
-    `/api/network/nodes`
+    `/api/network/nodes`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getGetNetworkNodesQueryOptions = <TData = Awaited<ReturnType<typeof getNetworkNodes>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getNetworkNodes>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetNetworkNodesQueryOptions = <TData = Awaited<ReturnType<typeof getNetworkNodes>>, TError = ErrorType<unknown>>(params?: GetNetworkNodesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getNetworkNodes>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetNetworkNodesQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getGetNetworkNodesQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getNetworkNodes>>> = ({ signal }) => getNetworkNodes({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getNetworkNodes>>> = ({ signal }) => getNetworkNodes(params, { signal, ...requestOptions });
 
 
 
@@ -272,11 +294,11 @@ export type GetNetworkNodesQueryError = ErrorType<unknown>
  */
 
 export function useGetNetworkNodes<TData = Awaited<ReturnType<typeof getNetworkNodes>>, TError = ErrorType<unknown>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getNetworkNodes>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: GetNetworkNodesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getNetworkNodes>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetNetworkNodesQueryOptions(options)
+  const queryOptions = getGetNetworkNodesQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -373,20 +395,27 @@ export function useGetNetworkEvents<TData = Awaited<ReturnType<typeof getNetwork
 
 
 
-export const getGetAgentAssessmentUrl = () => {
+export const getGetAgentAssessmentUrl = (params?: GetAgentAssessmentParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/network/agent/assessment`
+  return stringifiedParams.length > 0 ? `/api/network/agent/assessment?${stringifiedParams}` : `/api/network/agent/assessment`
 }
 
 /**
  * @summary Get the latest AI federation assessment
  */
-export const getAgentAssessment = async ( options?: Parameters<typeof customFetch>[1]): Promise<AgentAssessment> => {
+export const getAgentAssessment = async (params?: GetAgentAssessmentParams, options?: Parameters<typeof customFetch>[1]): Promise<AgentAssessment> => {
 
-  return customFetch<AgentAssessment>(getGetAgentAssessmentUrl(),
+  return customFetch<AgentAssessment>(getGetAgentAssessmentUrl(params),
   {
     ...options,
     method: 'GET'
@@ -399,23 +428,23 @@ export const getAgentAssessment = async ( options?: Parameters<typeof customFetc
 
 
 
-export const getGetAgentAssessmentQueryKey = () => {
+export const getGetAgentAssessmentQueryKey = (params?: GetAgentAssessmentParams,) => {
     return [
-    `/api/network/agent/assessment`
+    `/api/network/agent/assessment`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getGetAgentAssessmentQueryOptions = <TData = Awaited<ReturnType<typeof getAgentAssessment>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAgentAssessment>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetAgentAssessmentQueryOptions = <TData = Awaited<ReturnType<typeof getAgentAssessment>>, TError = ErrorType<unknown>>(params?: GetAgentAssessmentParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAgentAssessment>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetAgentAssessmentQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getGetAgentAssessmentQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAgentAssessment>>> = ({ signal }) => getAgentAssessment({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAgentAssessment>>> = ({ signal }) => getAgentAssessment(params, { signal, ...requestOptions });
 
 
 
@@ -433,11 +462,351 @@ export type GetAgentAssessmentQueryError = ErrorType<unknown>
  */
 
 export function useGetAgentAssessment<TData = Awaited<ReturnType<typeof getAgentAssessment>>, TError = ErrorType<unknown>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAgentAssessment>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: GetAgentAssessmentParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAgentAssessment>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetAgentAssessmentQueryOptions(options)
+  const queryOptions = getGetAgentAssessmentQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGenerateAgentAssessmentUrl = () => {
+
+
+
+
+  return `/api/network/agent/assessments`
+}
+
+/**
+ * Runs a real model call with tool use over the track's current network overview, client nodes, and recent events, then records the result as a new pending Action Value Card. If a pending assessment already exists for the track, that one is returned unchanged instead of generating a duplicate.
+ * @summary Ask the Federation Agent to analyze current track telemetry and produce a new assessment
+ */
+export const generateAgentAssessment = async (generateAgentAssessmentInput: GenerateAgentAssessmentInput, options?: Parameters<typeof customFetch>[1]): Promise<AgentAssessment> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<AgentAssessment>(getGenerateAgentAssessmentUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(generateAgentAssessmentInput)
+  }
+);}
+
+
+
+
+
+export const getGenerateAgentAssessmentMutationKey = () => ['generateAgentAssessment'] as const;
+
+export const getGenerateAgentAssessmentMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateAgentAssessment>>, TError,GenerateAgentAssessmentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generateAgentAssessment>>, TError,GenerateAgentAssessmentMutationVariables, TContext> => {
+
+const mutationKey = getGenerateAgentAssessmentMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generateAgentAssessment>>, GenerateAgentAssessmentMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  generateAgentAssessment(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GenerateAgentAssessmentMutationResult = NonNullable<Awaited<ReturnType<typeof generateAgentAssessment>>>
+    export type GenerateAgentAssessmentMutationBody = BodyType<GenerateAgentAssessmentInput>
+    export type GenerateAgentAssessmentMutationError = ErrorType<unknown>
+    export type GenerateAgentAssessmentMutationVariables = {data: BodyType<GenerateAgentAssessmentInput>}
+
+    /**
+ * @summary Ask the Federation Agent to analyze current track telemetry and produce a new assessment
+ */
+export const useGenerateAgentAssessment = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateAgentAssessment>>, TError,GenerateAgentAssessmentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof generateAgentAssessment>>,
+        TError,
+        GenerateAgentAssessmentMutationVariables,
+        TContext
+      > => {
+      return useMutation(getGenerateAgentAssessmentMutationOptions(options));
+    }
+
+export const getGetAgentActionHistoryUrl = (params?: GetAgentActionHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/network/agent/history?${stringifiedParams}` : `/api/network/agent/history`
+}
+
+/**
+ * @summary List past resolved AI federation actions
+ */
+export const getAgentActionHistory = async (params?: GetAgentActionHistoryParams, options?: Parameters<typeof customFetch>[1]): Promise<AgentAssessment[]> => {
+
+  return customFetch<AgentAssessment[]>(getGetAgentActionHistoryUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAgentActionHistoryQueryKey = (params?: GetAgentActionHistoryParams,) => {
+    return [
+    `/api/network/agent/history`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetAgentActionHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getAgentActionHistory>>, TError = ErrorType<unknown>>(params?: GetAgentActionHistoryParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAgentActionHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAgentActionHistoryQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAgentActionHistory>>> = ({ signal }) => getAgentActionHistory(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAgentActionHistory>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAgentActionHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getAgentActionHistory>>>
+export type GetAgentActionHistoryQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List past resolved AI federation actions
+ */
+
+export function useGetAgentActionHistory<TData = Awaited<ReturnType<typeof getAgentActionHistory>>, TError = ErrorType<unknown>>(
+ params?: GetAgentActionHistoryParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAgentActionHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAgentActionHistoryQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getAskAboutEventUrl = (eventId: string,) => {
+
+
+
+
+  return `/api/network/events/${eventId}/ask`
+}
+
+/**
+ * Runs a real model call, grounded in the event's own record plus optional lookups (network overview, client nodes, recent events), to answer a free-form question about why something happened. Not persisted — this is a read-only Q&A, not an audited action.
+ * @summary Ask the Federation Agent a question about a specific logged event
+ */
+export const askAboutEvent = async (eventId: string,
+    askAboutEventInput: AskAboutEventInput, options?: Parameters<typeof customFetch>[1]): Promise<AskAboutEventResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<AskAboutEventResult>(getAskAboutEventUrl(eventId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(askAboutEventInput)
+  }
+);}
+
+
+
+
+
+export const getAskAboutEventMutationKey = () => ['askAboutEvent'] as const;
+
+export const getAskAboutEventMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof askAboutEvent>>, TError,AskAboutEventMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof askAboutEvent>>, TError,AskAboutEventMutationVariables, TContext> => {
+
+const mutationKey = getAskAboutEventMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof askAboutEvent>>, AskAboutEventMutationVariables> = (props) => {
+          const {eventId,data} = props ?? {};
+
+          return  askAboutEvent(eventId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AskAboutEventMutationResult = NonNullable<Awaited<ReturnType<typeof askAboutEvent>>>
+    export type AskAboutEventMutationBody = BodyType<AskAboutEventInput>
+    export type AskAboutEventMutationError = ErrorType<unknown>
+    export type AskAboutEventMutationVariables = {eventId: string;data: BodyType<AskAboutEventInput>}
+
+    /**
+ * @summary Ask the Federation Agent a question about a specific logged event
+ */
+export const useAskAboutEvent = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof askAboutEvent>>, TError,AskAboutEventMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof askAboutEvent>>,
+        TError,
+        AskAboutEventMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAskAboutEventMutationOptions(options));
+    }
+
+export const getGetLearningTracksUrl = () => {
+
+
+
+
+  return `/api/network/tracks`
+}
+
+/**
+ * @summary List supported medical-imaging learning tracks
+ */
+export const getLearningTracks = async ( options?: Parameters<typeof customFetch>[1]): Promise<LearningTrack[]> => {
+
+  return customFetch<LearningTrack[]>(getGetLearningTracksUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetLearningTracksQueryKey = () => {
+    return [
+    `/api/network/tracks`
+    ] as const;
+    }
+
+
+export const getGetLearningTracksQueryOptions = <TData = Awaited<ReturnType<typeof getLearningTracks>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLearningTracks>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetLearningTracksQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getLearningTracks>>> = ({ signal }) => getLearningTracks({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getLearningTracks>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetLearningTracksQueryResult = NonNullable<Awaited<ReturnType<typeof getLearningTracks>>>
+export type GetLearningTracksQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List supported medical-imaging learning tracks
+ */
+
+export function useGetLearningTracks<TData = Awaited<ReturnType<typeof getLearningTracks>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLearningTracks>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetLearningTracksQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

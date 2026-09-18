@@ -20,6 +20,12 @@ export const HealthCheckResponse = zod.object({
 /**
  * @summary Get the current network overview
  */
+export const getNetworkOverviewQueryTrackDefault = `chest-xray`;
+
+export const GetNetworkOverviewQueryParams = zod.object({
+  "track": zod.coerce.string().default(getNetworkOverviewQueryTrackDefault)
+})
+
 export const GetNetworkOverviewResponse = zod.object({
   "networkName": zod.string(),
   "round": zod.number().int(),
@@ -31,13 +37,20 @@ export const GetNetworkOverviewResponse = zod.object({
   "privacyBudget": zod.number(),
   "privacyStatus": zod.string(),
   "modelVersion": zod.string(),
-  "lastUpdated": zod.string()
+  "lastUpdated": zod.string(),
+  "trackId": zod.string()
 })
 
 
 /**
  * @summary List participating client nodes
  */
+export const getNetworkNodesQueryTrackDefault = `chest-xray`;
+
+export const GetNetworkNodesQueryParams = zod.object({
+  "track": zod.coerce.string().default(getNetworkNodesQueryTrackDefault)
+})
+
 export const GetNetworkNodesResponseItem = zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -50,7 +63,8 @@ export const GetNetworkNodesResponseItem = zod.object({
   "privacyStatus": zod.string(),
   "lastSeen": zod.string(),
   "x": zod.number(),
-  "y": zod.number()
+  "y": zod.number(),
+  "trackId": zod.string()
 })
 export const GetNetworkNodesResponse = zod.array(GetNetworkNodesResponseItem)
 
@@ -58,12 +72,14 @@ export const GetNetworkNodesResponse = zod.array(GetNetworkNodesResponseItem)
 /**
  * @summary List recent network activity events
  */
+export const getNetworkEventsQueryTrackDefault = `chest-xray`;
 export const getNetworkEventsQueryLimitDefault = 20;
 export const getNetworkEventsQueryLimitMax = 100;
 
 
 
 export const GetNetworkEventsQueryParams = zod.object({
+  "track": zod.coerce.string().default(getNetworkEventsQueryTrackDefault),
   "limit": zod.coerce.number().int().min(1).max(getNetworkEventsQueryLimitMax).default(getNetworkEventsQueryLimitDefault)
 })
 
@@ -76,7 +92,8 @@ export const GetNetworkEventsResponseItem = zod.object({
   "detail": zod.string(),
   "severity": zod.string(),
   "round": zod.number().int(),
-  "nodeId": zod.string().nullish()
+  "nodeId": zod.string().nullish(),
+  "trackId": zod.string()
 })
 export const GetNetworkEventsResponse = zod.array(GetNetworkEventsResponseItem)
 
@@ -84,18 +101,124 @@ export const GetNetworkEventsResponse = zod.array(GetNetworkEventsResponseItem)
 /**
  * @summary Get the latest AI federation assessment
  */
+export const getAgentAssessmentQueryTrackDefault = `chest-xray`;
+
+export const GetAgentAssessmentQueryParams = zod.object({
+  "track": zod.coerce.string().default(getAgentAssessmentQueryTrackDefault)
+})
+
 export const GetAgentAssessmentResponse = zod.object({
   "id": zod.string(),
   "headline": zod.string(),
   "summary": zod.string(),
+  "purpose": zod.string(),
   "recommendation": zod.string(),
+  "expectedValue": zod.string(),
+  "observedValue": zod.string().nullable(),
   "confidence": zod.number(),
   "impact": zod.string(),
   "risk": zod.string(),
   "evidence": zod.array(zod.string()),
   "status": zod.string(),
-  "createdAt": zod.string()
+  "outcome": zod.string().nullable(),
+  "createdAt": zod.string(),
+  "resolvedAt": zod.string().nullable(),
+  "trackId": zod.string()
 })
+
+
+/**
+ * Runs a real model call with tool use over the track's current network overview, client nodes, and recent events, then records the result as a new pending Action Value Card. If a pending assessment already exists for the track, that one is returned unchanged instead of generating a duplicate.
+ * @summary Ask the Federation Agent to analyze current track telemetry and produce a new assessment
+ */
+export const GenerateAgentAssessmentBody = zod.object({
+  "track": zod.string()
+})
+
+export const GenerateAgentAssessmentResponse = zod.object({
+  "id": zod.string(),
+  "headline": zod.string(),
+  "summary": zod.string(),
+  "purpose": zod.string(),
+  "recommendation": zod.string(),
+  "expectedValue": zod.string(),
+  "observedValue": zod.string().nullable(),
+  "confidence": zod.number(),
+  "impact": zod.string(),
+  "risk": zod.string(),
+  "evidence": zod.array(zod.string()),
+  "status": zod.string(),
+  "outcome": zod.string().nullable(),
+  "createdAt": zod.string(),
+  "resolvedAt": zod.string().nullable(),
+  "trackId": zod.string()
+})
+
+
+/**
+ * @summary List past resolved AI federation actions
+ */
+export const getAgentActionHistoryQueryTrackDefault = `chest-xray`;
+
+export const GetAgentActionHistoryQueryParams = zod.object({
+  "track": zod.coerce.string().default(getAgentActionHistoryQueryTrackDefault)
+})
+
+export const GetAgentActionHistoryResponseItem = zod.object({
+  "id": zod.string(),
+  "headline": zod.string(),
+  "summary": zod.string(),
+  "purpose": zod.string(),
+  "recommendation": zod.string(),
+  "expectedValue": zod.string(),
+  "observedValue": zod.string().nullable(),
+  "confidence": zod.number(),
+  "impact": zod.string(),
+  "risk": zod.string(),
+  "evidence": zod.array(zod.string()),
+  "status": zod.string(),
+  "outcome": zod.string().nullable(),
+  "createdAt": zod.string(),
+  "resolvedAt": zod.string().nullable(),
+  "trackId": zod.string()
+})
+export const GetAgentActionHistoryResponse = zod.array(GetAgentActionHistoryResponseItem)
+
+
+/**
+ * Runs a real model call, grounded in the event's own record plus optional lookups (network overview, client nodes, recent events), to answer a free-form question about why something happened. Not persisted — this is a read-only Q&A, not an audited action.
+ * @summary Ask the Federation Agent a question about a specific logged event
+ */
+export const AskAboutEventParams = zod.object({
+  "eventId": zod.coerce.string()
+})
+
+export const AskAboutEventBody = zod.object({
+  "question": zod.string()
+})
+
+export const AskAboutEventResponse = zod.object({
+  "eventId": zod.string(),
+  "question": zod.string(),
+  "answer": zod.string(),
+  "answeredAt": zod.string()
+})
+
+
+/**
+ * @summary List supported medical-imaging learning tracks
+ */
+export const GetLearningTracksResponseItem = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "modality": zod.string(),
+  "task": zod.string(),
+  "model": zod.string(),
+  "primaryMetric": zod.string(),
+  "secondaryMetrics": zod.array(zod.string()),
+  "description": zod.string()
+})
+export const GetLearningTracksResponse = zod.array(GetLearningTracksResponseItem)
 
 
 /**
@@ -113,7 +236,9 @@ export const ResolveAgentActionResponse = zod.object({
   "actionId": zod.string(),
   "decision": zod.string(),
   "resolvedAt": zod.string(),
-  "message": zod.string()
+  "message": zod.string(),
+  "observedValue": zod.string(),
+  "outcome": zod.string()
 })
 
 

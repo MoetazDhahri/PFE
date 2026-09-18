@@ -1,0 +1,65 @@
+name: Deploy to Azure
+
+# Manual-only until the Azure infrastructure in infra/azure/ has actually
+# been provisioned and the secrets below are configured in this repo's
+# environment settings. Switch to `push: { branches: [main] }` once that's
+# true and you want every merge to auto-deploy.
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment (matches infra/azure namePrefix+environmentName)"
+        required: true
+        default: dev
+
+permissions:
+  id-token: write # required for OIDC federated login, no client secret needed
+  contents: read
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Log in to Container Registry
+        run: az acr login --name ${{ secrets.AZURE_ACR_NAME }}
+
+      - name: Build and push api-server image
+        run: |
+          docker build -f artifacts/api-server/Dockerfile \
+            -t ${{ secrets.AZURE_ACR_NAME }}.azurecr.io/api-server:${{ github.sha }} \
+            -t ${{ secrets.AZURE_ACR_NAME }}.azurecr.io/api-server:latest .
+          docker push ${{ secrets.AZURE_ACR_NAME }}.azurecr.io/api-server:${{ github.sha }}
+          docker push ${{ secrets.AZURE_ACR_NAME }}.azurecr.io/api-server:latest
+
+      - name: Build and push web image
+        run: |
+          docker build -f artifacts/federated-imaging-network/Dockerfile \
+            --build-arg VITE_CLERK_PUBLISHABLE_KEY=${{ secrets.CLERK_PUBLISHABLE_KEY }} \
+            -t ${{ secrets.AZURE_ACR_NAME }}.azurecr.io/web:${{ github.sha }} \
+            -t ${{ secrets.AZURE_ACR_NAME }}.azurecr.io/web:latest .
+          docker push ${{ secrets.AZURE_ACR_NAME }}.azurecr.io/web:${{ github.sha }}
+          docker push ${{ secrets.AZURE_ACR_NAME }}.azurecr.io/web:latest
+
+      - name: Update api-server Container App
+        run: |
+          az containerapp update \
+            --name ${{ secrets.AZURE_RESOURCE_PREFIX }}-api \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --image ${{ secrets.AZURE_ACR_NAME }}.azurecr.io/api-server:${{ github.sha }}
+
+      - name: Update web Container App
+        run: |
+          az containerapp update \
+            --name ${{ secrets.AZURE_RESOURCE_PREFIX }}-web \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --image ${{ secrets.AZURE_ACR_NAME }}.azurecr.io/web:${{ github.sha }}

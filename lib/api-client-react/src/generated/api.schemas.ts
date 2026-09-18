@@ -21,6 +21,7 @@ export interface NetworkOverview {
   privacyStatus: string;
   modelVersion: string;
   lastUpdated: string;
+  trackId: string;
 }
 
 export interface ClientNode {
@@ -36,6 +37,7 @@ export interface ClientNode {
   lastSeen: string;
   x: number;
   y: number;
+  trackId: string;
 }
 
 export interface ActivityEvent {
@@ -49,19 +51,55 @@ export interface ActivityEvent {
   round: number;
   /** @nullable */
   nodeId?: string | null;
+  trackId: string;
 }
 
 export interface AgentAssessment {
   id: string;
   headline: string;
   summary: string;
+  purpose: string;
   recommendation: string;
+  expectedValue: string;
+  /** @nullable */
+  observedValue: string | null;
   confidence: number;
   impact: string;
   risk: string;
   evidence: string[];
   status: string;
+  /** @nullable */
+  outcome: string | null;
   createdAt: string;
+  /** @nullable */
+  resolvedAt: string | null;
+  trackId: string;
+}
+
+export interface LearningTrack {
+  id: string;
+  name: string;
+  modality: string;
+  task: string;
+  model: string;
+  primaryMetric: string;
+  secondaryMetrics: string[];
+  description: string;
+}
+
+export interface AskAboutEventInput {
+  question: string;
+}
+
+export interface AskAboutEventResult {
+  eventId: string;
+  question: string;
+  answer: string;
+  answeredAt: string;
+}
+
+export interface GenerateAgentAssessmentInput {
+  track: string;
 }
 
 export type ActionResolutionInputDecision = typeof ActionResolutionInputDecision[keyof typeof ActionResolutionInputDecision];
@@ -81,13 +119,32 @@ export interface ActionResolution {
   decision: string;
   resolvedAt: string;
   message: string;
+  observedValue: string;
+  outcome: string;
 }
 
+export type GetNetworkOverviewParams = {
+track?: string;
+};
+
+export type GetNetworkNodesParams = {
+track?: string;
+};
+
 export type GetNetworkEventsParams = {
+track?: string;
 /**
  * @minimum 1
  * @maximum 100
  */
 limit?: number;
+};
+
+export type GetAgentAssessmentParams = {
+track?: string;
+};
+
+export type GetAgentActionHistoryParams = {
+track?: string;
 };
 

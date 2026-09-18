@@ -10,11 +10,20 @@ export interface AgentAssessment {
   id: string;
   headline: string;
   summary: string;
+  purpose: string;
   recommendation: string;
+  expectedValue: string;
+  /** @nullable */
+  observedValue: string | null;
   confidence: number;
   impact: string;
   risk: string;
   evidence: string[];
   status: string;
+  /** @nullable */
+  outcome: string | null;
   createdAt: string;
+  /** @nullable */
+  resolvedAt: string | null;
+  trackId: string;
 }

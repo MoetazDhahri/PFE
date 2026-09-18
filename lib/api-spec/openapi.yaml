@@ -31,6 +31,13 @@ paths:
       operationId: getNetworkOverview
       tags: [federation]
       summary: Get the current network overview
+      parameters:
+        - name: track
+          in: query
+          required: false
+          schema:
+            type: string
+            default: chest-xray
       responses:
         "200":
           description: Current federation overview
@@ -43,6 +50,13 @@ paths:
       operationId: getNetworkNodes
       tags: [federation]
       summary: List participating client nodes
+      parameters:
+        - name: track
+          in: query
+          required: false
+          schema:
+            type: string
+            default: chest-xray
       responses:
         "200":
           description: Ten participating client nodes
@@ -58,6 +72,12 @@ paths:
       tags: [federation]
       summary: List recent network activity events
       parameters:
+        - name: track
+          in: query
+          required: false
+          schema:
+            type: string
+            default: chest-xray
         - name: limit
           in: query
           required: false
@@ -80,6 +100,13 @@ paths:
       operationId: getAgentAssessment
       tags: [federation]
       summary: Get the latest AI federation assessment
+      parameters:
+        - name: track
+          in: query
+          required: false
+          schema:
+            type: string
+            default: chest-xray
       responses:
         "200":
           description: Current agent assessment
@@ -87,6 +114,94 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AgentAssessment"
+  /network/agent/assessments:
+    post:
+      operationId: generateAgentAssessment
+      tags: [federation]
+      summary: Ask the Federation Agent to analyze current track telemetry and produce a new assessment
+      description: >-
+        Runs a real model call with tool use over the track's current
+        network overview, client nodes, and recent events, then records the
+        result as a new pending Action Value Card. If a pending assessment
+        already exists for the track, that one is returned unchanged instead
+        of generating a duplicate.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateAgentAssessmentInput"
+      responses:
+        "200":
+          description: The current assessment for the track (freshly generated, or an already-pending one)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentAssessment"
+  /network/agent/history:
+    get:
+      operationId: getAgentActionHistory
+      tags: [federation]
+      summary: List past resolved AI federation actions
+      parameters:
+        - name: track
+          in: query
+          required: false
+          schema:
+            type: string
+            default: chest-xray
+      responses:
+        "200":
+          description: Past resolved agent actions, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AgentAssessment"
+  /network/events/{eventId}/ask:
+    post:
+      operationId: askAboutEvent
+      tags: [federation]
+      summary: Ask the Federation Agent a question about a specific logged event
+      description: >-
+        Runs a real model call, grounded in the event's own record plus
+        optional lookups (network overview, client nodes, recent events),
+        to answer a free-form question about why something happened. Not
+        persisted — this is a read-only Q&A, not an audited action.
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AskAboutEventInput"
+      responses:
+        "200":
+          description: The agent's grounded answer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AskAboutEventResult"
+  /network/tracks:
+    get:
+      operationId: getLearningTracks
+      tags: [federation]
+      summary: List supported medical-imaging learning tracks
+      responses:
+        "200":
+          description: Supported learning tracks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LearningTrack"
   /network/actions/{actionId}/resolve:
     post:
       operationId: resolveAgentAction
@@ -134,6 +249,7 @@ components:
         - privacyStatus
         - modelVersion
         - lastUpdated
+        - trackId
       properties:
         networkName:
           type: string
@@ -157,6 +273,8 @@ components:
           type: string
         lastUpdated:
           type: string
+        trackId:
+          type: string
     ClientNode:
       type: object
       required:
@@ -172,6 +290,7 @@ components:
         - lastSeen
         - x
         - y
+        - trackId
       properties:
         id:
           type: string
@@ -197,6 +316,8 @@ components:
           type: number
         y:
           type: number
+        trackId:
+          type: string
     ActivityEvent:
       type: object
       required:
@@ -208,6 +329,7 @@ components:
         - detail
         - severity
         - round
+        - trackId
       properties:
         id:
           type: string
@@ -227,19 +349,27 @@ components:
           type: integer
         nodeId:
           type: ["string", "null"]
+        trackId:
+          type: string
     AgentAssessment:
       type: object
       required:
         - id
         - headline
         - summary
+        - purpose
         - recommendation
+        - expectedValue
+        - observedValue
         - confidence
         - impact
         - risk
         - evidence
         - status
+        - outcome
         - createdAt
+        - resolvedAt
+        - trackId
       properties:
         id:
           type: string
@@ -247,8 +377,14 @@ components:
           type: string
         summary:
           type: string
+        purpose:
+          type: string
         recommendation:
           type: string
+        expectedValue:
+          type: string
+        observedValue:
+          type: ["string", "null"]
         confidence:
           type: number
         impact:
@@ -261,7 +397,73 @@ components:
             type: string
         status:
           type: string
+        outcome:
+          type: ["string", "null"]
         createdAt:
+          type: string
+        resolvedAt:
+          type: ["string", "null"]
+        trackId:
+          type: string
+    LearningTrack:
+      type: object
+      required:
+        - id
+        - name
+        - modality
+        - task
+        - model
+        - primaryMetric
+        - secondaryMetrics
+        - description
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        modality:
+          type: string
+        task:
+          type: string
+        model:
+          type: string
+        primaryMetric:
+          type: string
+        secondaryMetrics:
+          type: array
+          items:
+            type: string
+        description:
+          type: string
+    AskAboutEventInput:
+      type: object
+      required:
+        - question
+      properties:
+        question:
+          type: string
+    AskAboutEventResult:
+      type: object
+      required:
+        - eventId
+        - question
+        - answer
+        - answeredAt
+      properties:
+        eventId:
+          type: string
+        question:
+          type: string
+        answer:
+          type: string
+        answeredAt:
+          type: string
+    GenerateAgentAssessmentInput:
+      type: object
+      required:
+        - track
+      properties:
+        track:
           type: string
     ActionResolutionInput:
       type: object
@@ -278,6 +480,8 @@ components:
         - decision
         - resolvedAt
         - message
+        - observedValue
+        - outcome
       properties:
         actionId:
           type: string
@@ -286,5 +490,9 @@ components:
         resolvedAt:
           type: string
         message:
+          type: string
+        observedValue:
+          type: string
+        outcome:
           type: string
 

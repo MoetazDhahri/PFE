@@ -18,4 +18,5 @@ export interface NetworkOverview {
   privacyStatus: string;
   modelVersion: string;
   lastUpdated: string;
+  trackId: string;
 }

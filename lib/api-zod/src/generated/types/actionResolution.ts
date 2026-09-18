@@ -11,4 +11,6 @@ export interface ActionResolution {
   decision: string;
   resolvedAt: string;
   message: string;
+  observedValue: string;
+  outcome: string;
 }
