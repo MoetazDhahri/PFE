@@ -108,7 +108,10 @@ function overviewForTrack(track: NewLearningTrackRow, now: Date): NewNetworkOver
 }
 
 function eventsForTrack(track: NewLearningTrackRow, now: Date): NewActivityEventRow[] {
-  return [
+  const siteNames = siteDefinitions.map(([name]) => name);
+  const DAY = 86_400_000;
+
+  const round12: NewActivityEventRow[] = [
     {
       id: `${track.id}-event-1`,
       trackId: track.id,
@@ -139,7 +142,7 @@ function eventsForTrack(track: NewLearningTrackRow, now: Date): NewActivityEvent
       timestamp: new Date(now.getTime() - 278000),
       actor: "Site 08",
       type: "client",
-      title: "Local update received from Atlas Care Group",
+      title: `Local update received from ${siteNames[7]}`,
       detail: "Local training completed with gradient clipping applied. Raw imaging data remained on site.",
       severity: "info",
       round: 12,
@@ -170,6 +173,137 @@ function eventsForTrack(track: NewLearningTrackRow, now: Date): NewActivityEvent
       nodeId: null,
     },
   ];
+
+  const round11: NewActivityEventRow[] = [
+    {
+      id: `${track.id}-event-r11-1`,
+      trackId: track.id,
+      timestamp: new Date(now.getTime() - DAY - 91_000),
+      actor: "Coordinator",
+      type: "aggregation",
+      title: `Round 11 update aggregated for ${track.name}`,
+      detail: "10 of 10 encrypted client updates passed validation and were included in the global model.",
+      severity: "success",
+      round: 11,
+      nodeId: null,
+    },
+    {
+      id: `${track.id}-event-r11-2`,
+      trackId: track.id,
+      timestamp: new Date(now.getTime() - DAY - 305_000),
+      actor: `Site 09`,
+      type: "client",
+      title: `Local update received from ${siteNames[8]}`,
+      detail: "Local training completed within the round window.",
+      severity: "info",
+      round: 11,
+      nodeId: "site-9",
+    },
+    {
+      id: `${track.id}-event-r11-3`,
+      trackId: track.id,
+      timestamp: new Date(now.getTime() - DAY - 640_000),
+      actor: "Coordinator",
+      type: "round",
+      title: "Round 11 opened for client contributions",
+      detail: `Full participation expected across all 10 sites for ${track.name}.`,
+      severity: "info",
+      round: 11,
+      nodeId: null,
+    },
+  ];
+
+  const round10: NewActivityEventRow[] = [
+    {
+      id: `${track.id}-event-r10-1`,
+      trackId: track.id,
+      timestamp: new Date(now.getTime() - 2 * DAY - 60_000),
+      actor: "Coordinator",
+      type: "aggregation",
+      title: `Round 10 update aggregated for ${track.name}`,
+      detail: "9 of 10 encrypted client updates passed validation. Site 08's late update was included after manual verification.",
+      severity: "success",
+      round: 10,
+      nodeId: null,
+    },
+    {
+      id: `${track.id}-event-r10-2`,
+      trackId: track.id,
+      timestamp: new Date(now.getTime() - 2 * DAY - 210_000),
+      actor: "Federation Agent",
+      type: "assessment",
+      title: "Site 08 update arrived after the round window",
+      detail: "The agent recommended excluding the update from aggregation pending review.",
+      severity: "warning",
+      round: 10,
+      nodeId: "site-8",
+    },
+    {
+      id: `${track.id}-event-r10-3`,
+      trackId: track.id,
+      timestamp: new Date(now.getTime() - 2 * DAY - 520_000),
+      actor: "Privacy Guard",
+      type: "privacy",
+      title: "Secure aggregation threshold verified",
+      detail: "Minimum participation threshold met for round 10.",
+      severity: "success",
+      round: 10,
+      nodeId: null,
+    },
+    {
+      id: `${track.id}-event-r10-4`,
+      trackId: track.id,
+      timestamp: new Date(now.getTime() - 2 * DAY - 700_000),
+      actor: "Coordinator",
+      type: "round",
+      title: "Round 10 opened for client contributions",
+      detail: `The ${track.task.toLowerCase()} experiment continues with ${track.model}.`,
+      severity: "info",
+      round: 10,
+      nodeId: null,
+    },
+  ];
+
+  const round9: NewActivityEventRow[] = [
+    {
+      id: `${track.id}-event-r9-1`,
+      trackId: track.id,
+      timestamp: new Date(now.getTime() - 3 * DAY - 88_000),
+      actor: "Coordinator",
+      type: "aggregation",
+      title: `Round 9 update aggregated for ${track.name}`,
+      detail: "10 of 10 encrypted client updates passed validation and were included in the global model.",
+      severity: "success",
+      round: 9,
+      nodeId: null,
+    },
+    {
+      id: `${track.id}-event-r9-2`,
+      trackId: track.id,
+      timestamp: new Date(now.getTime() - 3 * DAY - 240_000),
+      actor: "Site 03",
+      type: "client",
+      title: `Local update received from ${siteNames[2]}`,
+      detail: "Local training completed within the round window.",
+      severity: "info",
+      round: 9,
+      nodeId: "site-3",
+    },
+    {
+      id: `${track.id}-event-r9-3`,
+      trackId: track.id,
+      timestamp: new Date(now.getTime() - 4 * DAY),
+      actor: "Coordinator",
+      type: "round",
+      title: "Round 9 opened for client contributions",
+      detail: `Standard round for ${track.name}.`,
+      severity: "info",
+      round: 9,
+      nodeId: null,
+    },
+  ];
+
+  return [...round12, ...round11, ...round10, ...round9];
 }
 
 function assessmentsForTrack(track: NewLearningTrackRow, now: Date): NewAgentAssessmentRow[] {
@@ -180,6 +314,28 @@ function assessmentsForTrack(track: NewLearningTrackRow, now: Date): NewAgentAss
         ? "false positives increased by 11% at Site 04"
         : "validation loss increased 18.4% at Site 04";
   return [
+    {
+      id: `assessment-${track.id}-r9`,
+      trackId: track.id,
+      headline: "Round 9 aggregation cleared without exceptions",
+      summary: `All 10 sites contributed within their expected variance band for ${track.name}; no outlier evidence was found.`,
+      purpose: "Confirm the round was safe to aggregate without holding any site's update.",
+      recommendation: "Proceed with FedAvg-weighted aggregation across all 10 sites.",
+      expectedValue: `Global ${track.primaryMetric} should continue its round-over-round improvement with no site held back.`,
+      observedValue: `Global ${track.primaryMetric} improved as expected and every site's local metric stayed within one standard deviation of the mean.`,
+      confidence: 0.96,
+      impact: "Low",
+      risk: "Low",
+      evidence: [
+        "No site exceeded the validation-loss outlier threshold",
+        "10 of 10 sites reported within the round window",
+        "Secure aggregation threshold satisfied with full participation",
+      ],
+      status: "approved",
+      outcome: "Recommendation followed. Round 9 aggregated on schedule with no held sites.",
+      createdAt: new Date(now.getTime() - 3 * 86_400_000 - 90_000),
+      resolvedAt: new Date(now.getTime() - 3 * 86_400_000 - 40_000),
+    },
     {
       id: `assessment-${track.id}-r10`,
       trackId: track.id,
