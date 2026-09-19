@@ -11,7 +11,8 @@
     "push": "drizzle-kit push --config ./drizzle.config.ts",
     "push-force": "drizzle-kit push --force --config ./drizzle.config.ts",
     "seed": "tsx src/seed.ts",
-    "import-training-run": "tsx src/import-training-run.ts"
+    "import-training-run": "tsx src/import-training-run.ts",
+    "issue-node-keys": "tsx src/issue-node-keys.ts"
   },
   "dependencies": {
     "drizzle-orm": "catalog:",

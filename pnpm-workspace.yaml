@@ -158,3 +158,4 @@ overrides:
 allowBuilds:
   '@clerk/shared': true
   esbuild: true
+  onnxruntime-node: true

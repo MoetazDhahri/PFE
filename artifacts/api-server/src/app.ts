@@ -43,7 +43,10 @@ app.use(
     legacyHeaders: false,
   }),
 );
-app.use(express.json({ limit: "1mb" }));
+// 8mb to accommodate base64-encoded chest X-ray uploads to
+// POST /network/inference (base64 adds ~33% size overhead over the raw
+// image; other JSON bodies in this API are tiny).
+app.use(express.json({ limit: "8mb" }));
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 app.use(
   clerkMiddleware((req) => ({

@@ -95,6 +95,27 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/ActivityEvent"
+  /network/training-rounds:
+    get:
+      operationId: getTrainingRounds
+      tags: [federation]
+      summary: List per-round global evaluation metrics for a completed real training run
+      parameters:
+        - name: track
+          in: query
+          required: false
+          schema:
+            type: string
+            default: chest-xray
+      responses:
+        "200":
+          description: Round-by-round global metrics, ordered by round ascending
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TrainingRound"
   /network/agent/assessment:
     get:
       operationId: getAgentAssessment
@@ -188,6 +209,32 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AskAboutEventResult"
+  /network/inference:
+    post:
+      operationId: classifyChestXray
+      tags: [federation]
+      summary: Classify an uploaded chest X-ray image with the real trained chest-xray model
+      description: >-
+        Runs a real forward pass through the ONNX-exported model produced by
+        a completed ml/federation-engine training run (see
+        docs/production-readiness.md). Not an LLM call and not a diagnostic
+        device — a real but small research model trained on PneumoniaMNIST.
+        Returns 503 if no trained model has been imported yet.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClassifyChestXrayInput"
+      responses:
+        "200":
+          description: Real model prediction
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassifyChestXrayResult"
+        "403":
+          description: nodeId was set but nodeApiKey was missing or did not match that node's real credential
   /network/tracks:
     get:
       operationId: getLearningTracks
@@ -351,6 +398,40 @@ components:
           type: ["string", "null"]
         trackId:
           type: string
+    TrainingRound:
+      type: object
+      required:
+        - id
+        - trackId
+        - round
+        - globalLoss
+        - globalAccuracy
+        - globalSensitivity
+        - globalSpecificity
+        - recordedAt
+      properties:
+        id:
+          type: string
+        trackId:
+          type: string
+        round:
+          type: integer
+        globalLoss:
+          type: number
+        globalAccuracy:
+          type: number
+        globalSensitivity:
+          type: number
+        globalSpecificity:
+          type: number
+        privacyEpsilon:
+          type: ["number", "null"]
+          description: >-
+            Real (epsilon, delta)-DP guarantee at this round from DP-SGD
+            (Opacus RDP accountant) — the weakest per-client epsilon so
+            far. Null for rounds imported before DP-SGD existed.
+        recordedAt:
+          type: string
     AgentAssessment:
       type: object
       required:
@@ -435,6 +516,59 @@ components:
             type: string
         description:
           type: string
+    ClassifyChestXrayInput:
+      type: object
+      required:
+        - imageBase64
+      properties:
+        imageBase64:
+          type: string
+          description: Base64-encoded image data (PNG/JPEG), no data URL prefix.
+        nodeId:
+          type: ["string", "null"]
+          description: >-
+            Optional. If set, assigns this image to that hospital node —
+            increments its real dataVolume by one and logs a real activity
+            event. The raw image itself is never persisted, only the
+            classification result and the fact that one more sample now
+            exists at that site (consistent with this platform's "raw
+            imaging never leaves the site" design). Requires nodeApiKey to
+            match that node's real credential — without it, or with a wrong
+            key, the request is rejected with 403 rather than silently
+            attributing the upload to a hospital that never authenticated
+            as itself.
+        nodeApiKey:
+          type: ["string", "null"]
+          description: >-
+            Required when nodeId is set. The hospital's real per-node API
+            key (issued once by seed.ts / issue-node-keys.ts, verified by
+            hash — see docs/production-readiness.md).
+    ClassifyChestXrayResult:
+      type: object
+      required:
+        - prediction
+        - confidence
+        - normalProbability
+        - pneumoniaProbability
+        - modelVersion
+        - assignedNodeId
+        - assignedNodeName
+      properties:
+        prediction:
+          type: string
+          enum: [normal, pneumonia]
+        confidence:
+          type: number
+        normalProbability:
+          type: number
+        pneumoniaProbability:
+          type: number
+        modelVersion:
+          type: string
+        assignedNodeId:
+          type: ["string", "null"]
+        assignedNodeName:
+          type: ["string", "null"]
     AskAboutEventInput:
       type: object
       required:

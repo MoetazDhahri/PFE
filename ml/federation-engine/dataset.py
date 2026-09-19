@@ -1,7 +1,16 @@
-"""Loads PneumoniaMNIST (real chest X-ray images, binary classification —
-pneumonia vs. normal) and partitions it into NUM_CLIENTS non-IID shards,
-one per simulated hospital, matching the first NUM_CLIENTS sites seeded
-into Postgres by lib/db/src/seed.ts (site-1, site-2, ...).
+"""Loads a real MedMNIST binary-classification dataset and partitions it
+into NUM_CLIENTS non-IID shards, one per simulated hospital, matching the
+first NUM_CLIENTS sites seeded into Postgres by lib/db/src/seed.ts
+(site-1, site-2, ...).
+
+Defaults to PneumoniaMNIST (chest X-rays, pneumonia vs. normal) — the
+dataset this repo's chest-xray track is built on. run.py's DATASET_NAME
+can point this at any other MedMNIST 2D binary-classification dataset
+(e.g. breastmnist) to prove the same FedAvg pipeline generalizes to a
+second real dataset; this reuses the chest-xray track's model and code
+as-is rather than claiming to be a different learning track (that would
+need a real MRI/CT dataset and a different model architecture — see
+ml/federation-engine/README.md).
 """
 
 import numpy as np
@@ -61,8 +70,13 @@ def _dirichlet_partition(labels: np.ndarray, num_clients: int, alpha: float, see
     )
 
 
-def _load_raw(image_size: int = 28):
-    info = INFO["pneumoniamnist"]
+def _load_raw(dataset_name: str, image_size: int = 28):
+    info = INFO[dataset_name]
+    if info["task"] != "binary-class":
+        raise ValueError(
+            f'Dataset "{dataset_name}" is task "{info["task"]}", not "binary-class" — '
+            "the model, loss, and sensitivity/specificity metrics here all assume two classes."
+        )
     data_class = getattr(medmnist, info["python_class"])
     train_raw = data_class(split="train", download=True, size=image_size, root="/app/data")
     test_raw = data_class(split="test", download=True, size=image_size, root="/app/data")
@@ -79,9 +93,9 @@ def _train_val_split(indices: np.ndarray):
     return train_idx, val_idx
 
 
-def load_client_partitions(batch_size: int = 32, image_size: int = 28):
+def load_client_partitions(dataset_name: str = "pneumoniamnist", batch_size: int = 32, image_size: int = 28):
     """Builds every client's loaders plus the held-out test set."""
-    train_images, train_labels, test_images, test_labels = _load_raw(image_size)
+    train_images, train_labels, test_images, test_labels = _load_raw(dataset_name, image_size)
     client_indices = _dirichlet_partition(train_labels.squeeze(-1), NUM_CLIENTS, DIRICHLET_ALPHA)
 
     train_loaders = []

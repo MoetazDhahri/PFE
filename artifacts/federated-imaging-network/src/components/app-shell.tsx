@@ -1,13 +1,15 @@
 import { createContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Activity, BookOpen, BrainCircuit, ChevronDown, CircleDot, FileClock, FlaskConical, LockKeyhole, Network, ShieldCheck } from 'lucide-react';
+import { Activity, BookOpen, BrainCircuit, ChevronDown, CircleDot, FileClock, FlaskConical, LockKeyhole, Network, ScanLine, ShieldCheck } from 'lucide-react';
 import { useClerk, useUser } from '@clerk/react';
 import { Link, useLocation } from 'wouter';
 import { useGetLearningTracks, getGetLearningTracksQueryKey, type LearningTrack } from '@workspace/api-client-react';
 import { trackColor } from '@/lib/federation';
+import { useRealtimeNetworkUpdates } from '@/hooks/use-realtime';
 
 const navItems = [
   { href: '/overview', label: 'Federation', icon: Network },
   { href: '/training', label: 'Training round', icon: Activity },
+  { href: '/inference', label: 'Try the model', icon: ScanLine },
   { href: '/logs', label: 'Activity logs', icon: FileClock },
   { href: '/agent', label: 'Federation agent', icon: BrainCircuit },
   { href: '/privacy', label: 'Privacy & audit', icon: ShieldCheck },
@@ -21,6 +23,7 @@ export const TrackContext = createContext<{ trackId: string; setTrackId: (value:
 });
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const realtimeStatus = useRealtimeNetworkUpdates();
   const [location] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -89,9 +92,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <div className="hidden items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 sm:flex">
-              <span className="pulse-signal h-1.5 w-1.5 rounded-full bg-primary" />
-              <span className="mono-label text-muted-foreground">Network live</span>
+            <div className="hidden items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 sm:flex" title={realtimeStatus === 'connected' ? 'Real-time updates connected' : realtimeStatus === 'reconnecting' ? 'Real-time connection dropped — retrying' : 'Connecting to real-time updates…'}>
+              <span className={`h-1.5 w-1.5 rounded-full ${realtimeStatus === 'connected' ? 'pulse-signal bg-primary' : realtimeStatus === 'reconnecting' ? 'bg-destructive' : 'bg-muted-foreground/50'}`} />
+              <span className="mono-label text-muted-foreground">{realtimeStatus === 'connected' ? 'Live' : realtimeStatus === 'reconnecting' ? 'Reconnecting…' : 'Connecting…'}</span>
             </div>
             <div className="relative">
               <button type="button" onClick={() => setProfileOpen((value) => !value)} className="grid h-8 w-8 place-items-center rounded-full bg-foreground text-[11px] font-bold text-background transition-transform hover:scale-105" title="Open profile menu" data-testid="button-open-profile">

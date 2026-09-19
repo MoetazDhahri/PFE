@@ -35,11 +35,34 @@ export function eventTone(event?: ActivityEvent) {
   return 'text-[hsl(var(--primary))] bg-[hsl(var(--primary)/.12)]';
 }
 
+// Real status values written by lib/db/src/seed.ts and import-training-run.ts
+// are "online" | "syncing" | "attention" — matched explicitly here rather
+// than by substring guesses like "error"/"offline"/"round"/"train", which
+// don't occur in the real data and previously left every node rendering
+// with the same "healthy" tone regardless of its actual status.
 export function nodeTone(status?: string) {
   const value = status?.toLowerCase();
-  if (value?.includes('error') || value?.includes('offline')) return { dot: 'bg-[hsl(var(--destructive))]', label: 'text-[hsl(var(--destructive))]' };
-  if (value?.includes('round') || value?.includes('train')) return { dot: 'bg-[hsl(var(--accent))]', label: 'text-[hsl(var(--accent-foreground))]' };
+  if (value === 'attention') return { dot: 'bg-[hsl(var(--destructive))]', label: 'text-[hsl(var(--destructive))]' };
+  if (value === 'syncing') return { dot: 'bg-[hsl(var(--accent))]', label: 'text-[hsl(var(--accent-foreground))]' };
   return { dot: 'bg-[hsl(var(--primary))]', label: 'text-[hsl(var(--primary))]' };
+}
+
+// Same classification as nodeTone, as a raw color string for contexts
+// (SVG stroke/fill) that can't use Tailwind's arbitrary-value classes.
+export function nodeStrokeColor(status?: string): string {
+  const value = status?.toLowerCase();
+  if (value === 'attention') return 'hsl(var(--destructive))';
+  if (value === 'syncing') return 'hsl(var(--accent))';
+  return 'hsl(var(--primary))';
+}
+
+export type NodeStatusGroup = 'healthy' | 'active' | 'attention';
+
+export function nodeStatusGroup(status?: string): NodeStatusGroup {
+  const value = status?.toLowerCase();
+  if (value === 'attention') return 'attention';
+  if (value === 'syncing') return 'active';
+  return 'healthy';
 }
 
 export function trackName(trackId: string | undefined, tracks?: LearningTrack[]) {

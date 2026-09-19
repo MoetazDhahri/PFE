@@ -1,10 +1,15 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ChevronRight, Cloud, Compass, Scale, ShieldAlert, Sigma } from 'lucide-react';
+import { useSearchParams } from 'wouter';
 import { useGetLearningTracks, getGetLearningTracksQueryKey } from '@workspace/api-client-react';
 import { PageFrame, Panel, QueryState, TrackPicker } from '@/components/app-shell';
 import { useTrackSelection } from '@/hooks/use-track';
 import { trackColor } from '@/lib/federation';
 import { academyModules, conceptStatusLabel, type AcademyConcept, type ConceptStatus } from '@/lib/academy-content';
+
+function findModuleForConcept(conceptId: string) {
+  return academyModules.find((module) => module.concepts.some((concept) => concept.id === conceptId));
+}
 
 const STATUS_STYLES: Record<ConceptStatus, string> = {
   implemented: 'bg-primary/10 text-primary',
@@ -15,14 +20,26 @@ const STATUS_STYLES: Record<ConceptStatus, string> = {
 export default function Academy() {
   const { data: tracks, isLoading, isError } = useGetLearningTracks({ query: { queryKey: getGetLearningTracksQueryKey() } });
   const { trackId: selectedTrackId, setTrackId: setSelectedTrackId } = useTrackSelection();
-  const [selectedModuleId, setSelectedModuleId] = useState(academyModules[0].id);
+  const [searchParams] = useSearchParams();
+  const requestedConceptId = searchParams.get('concept');
+  const [selectedModuleId, setSelectedModuleId] = useState(() => findModuleForConcept(requestedConceptId ?? '')?.id ?? academyModules[0].id);
   const selected = tracks?.find((track) => track.id === selectedTrackId) ?? tracks?.[0];
   const currentModule = useMemo(() => academyModules.find((item) => item.id === selectedModuleId) ?? academyModules[0], [selectedModuleId]);
-  const [selectedConceptId, setSelectedConceptId] = useState(currentModule.concepts[0].id);
+  const [selectedConceptId, setSelectedConceptId] = useState(
+    () => currentModule.concepts.find((concept) => concept.id === requestedConceptId)?.id ?? currentModule.concepts[0].id,
+  );
 
+  // A "Learn more" link (see InfoTip) points here with ?concept=<id>. This
+  // reacts to that changing even when the Academy page is already mounted
+  // (e.g. clicking a different InfoTip without a full page navigation).
   useEffect(() => {
-    setSelectedConceptId(currentModule.concepts[0].id);
-  }, [currentModule]);
+    if (!requestedConceptId) return;
+    const module = findModuleForConcept(requestedConceptId);
+    if (!module) return;
+    setSelectedModuleId(module.id);
+    setSelectedConceptId(requestedConceptId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestedConceptId]);
 
   const currentConcept = useMemo<AcademyConcept>(
     () => currentModule.concepts.find((item) => item.id === selectedConceptId) ?? currentModule.concepts[0],
@@ -69,7 +86,7 @@ export default function Academy() {
                       <button
                         type="button"
                         key={item.id}
-                        onClick={() => setSelectedModuleId(item.id)}
+                        onClick={() => { setSelectedModuleId(item.id); setSelectedConceptId(item.concepts[0].id); }}
                         className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2.5 text-left text-xs transition-colors ${active ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
                         data-testid={`button-module-${item.id}`}
                       >

@@ -9,6 +9,7 @@ import NotFound from '@/pages/not-found';
 import { AppShell } from '@/components/app-shell';
 import Overview from '@/pages/overview';
 import Training from '@/pages/training';
+import Inference from '@/pages/inference';
 import Logs from '@/pages/logs';
 import Agent from '@/pages/agent';
 import Privacy from '@/pages/privacy';
@@ -52,6 +53,7 @@ function Router() {
         <Route path="/" component={HomeRedirect} />
         <Route path="/overview">{() => <ProtectedScreen><Overview /></ProtectedScreen>}</Route>
         <Route path="/training">{() => <ProtectedScreen><Training /></ProtectedScreen>}</Route>
+        <Route path="/inference">{() => <ProtectedScreen><Inference /></ProtectedScreen>}</Route>
         <Route path="/logs">{() => <ProtectedScreen><Logs /></ProtectedScreen>}</Route>
         <Route path="/agent">{() => <ProtectedScreen><Agent /></ProtectedScreen>}</Route>
         <Route path="/privacy">{() => <ProtectedScreen><Privacy /></ProtectedScreen>}</Route>

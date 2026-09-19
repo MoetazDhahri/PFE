@@ -1,3 +1,6 @@
 medmnist==3.0.2
 numpy
 scikit-learn
+onnx
+opacus
+pytest

@@ -26,6 +26,8 @@ import type {
   AgentAssessment,
   AskAboutEventInput,
   AskAboutEventResult,
+  ClassifyChestXrayInput,
+  ClassifyChestXrayResult,
   ClientNode,
   GenerateAgentAssessmentInput,
   GetAgentActionHistoryParams,
@@ -33,9 +35,11 @@ import type {
   GetNetworkEventsParams,
   GetNetworkNodesParams,
   GetNetworkOverviewParams,
+  GetTrainingRoundsParams,
   HealthStatus,
   LearningTrack,
-  NetworkOverview
+  NetworkOverview,
+  TrainingRound
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -395,6 +399,90 @@ export function useGetNetworkEvents<TData = Awaited<ReturnType<typeof getNetwork
 
 
 
+export const getGetTrainingRoundsUrl = (params?: GetTrainingRoundsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/network/training-rounds?${stringifiedParams}` : `/api/network/training-rounds`
+}
+
+/**
+ * @summary List per-round global evaluation metrics for a completed real training run
+ */
+export const getTrainingRounds = async (params?: GetTrainingRoundsParams, options?: Parameters<typeof customFetch>[1]): Promise<TrainingRound[]> => {
+
+  return customFetch<TrainingRound[]>(getGetTrainingRoundsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetTrainingRoundsQueryKey = (params?: GetTrainingRoundsParams,) => {
+    return [
+    `/api/network/training-rounds`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetTrainingRoundsQueryOptions = <TData = Awaited<ReturnType<typeof getTrainingRounds>>, TError = ErrorType<unknown>>(params?: GetTrainingRoundsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTrainingRounds>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetTrainingRoundsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getTrainingRounds>>> = ({ signal }) => getTrainingRounds(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getTrainingRounds>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetTrainingRoundsQueryResult = NonNullable<Awaited<ReturnType<typeof getTrainingRounds>>>
+export type GetTrainingRoundsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List per-round global evaluation metrics for a completed real training run
+ */
+
+export function useGetTrainingRounds<TData = Awaited<ReturnType<typeof getTrainingRounds>>, TError = ErrorType<unknown>>(
+ params?: GetTrainingRoundsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTrainingRounds>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetTrainingRoundsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getGetAgentAssessmentUrl = (params?: GetAgentAssessmentParams,) => {
   const normalizedParams = new URLSearchParams();
 
@@ -740,6 +828,95 @@ export const useAskAboutEvent = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getAskAboutEventMutationOptions(options));
+    }
+
+export const getClassifyChestXrayUrl = () => {
+
+
+
+
+  return `/api/network/inference`
+}
+
+/**
+ * Runs a real forward pass through the ONNX-exported model produced by a completed ml/federation-engine training run (see docs/production-readiness.md). Not an LLM call and not a diagnostic device — a real but small research model trained on PneumoniaMNIST. Returns 503 if no trained model has been imported yet.
+ * @summary Classify an uploaded chest X-ray image with the real trained chest-xray model
+ */
+export const classifyChestXray = async (classifyChestXrayInput: ClassifyChestXrayInput, options?: Parameters<typeof customFetch>[1]): Promise<ClassifyChestXrayResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<ClassifyChestXrayResult>(getClassifyChestXrayUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(classifyChestXrayInput)
+  }
+);}
+
+
+
+
+
+export const getClassifyChestXrayMutationKey = () => ['classifyChestXray'] as const;
+
+export const getClassifyChestXrayMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof classifyChestXray>>, TError,ClassifyChestXrayMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof classifyChestXray>>, TError,ClassifyChestXrayMutationVariables, TContext> => {
+
+const mutationKey = getClassifyChestXrayMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof classifyChestXray>>, ClassifyChestXrayMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  classifyChestXray(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ClassifyChestXrayMutationResult = NonNullable<Awaited<ReturnType<typeof classifyChestXray>>>
+    export type ClassifyChestXrayMutationBody = BodyType<ClassifyChestXrayInput>
+    export type ClassifyChestXrayMutationError = ErrorType<void>
+    export type ClassifyChestXrayMutationVariables = {data: BodyType<ClassifyChestXrayInput>}
+
+    /**
+ * @summary Classify an uploaded chest X-ray image with the real trained chest-xray model
+ */
+export const useClassifyChestXray = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof classifyChestXray>>, TError,ClassifyChestXrayMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof classifyChestXray>>,
+        TError,
+        ClassifyChestXrayMutationVariables,
+        TContext
+      > => {
+      return useMutation(getClassifyChestXrayMutationOptions(options));
     }
 
 export const getGetLearningTracksUrl = () => {

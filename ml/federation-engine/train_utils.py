@@ -2,6 +2,7 @@ from collections import OrderedDict
 
 import torch
 import torch.nn as nn
+from opacus import PrivacyEngine
 from torch.utils.data import DataLoader
 
 
@@ -15,18 +16,54 @@ def set_parameters(model: nn.Module, parameters) -> None:
     model.load_state_dict(state_dict, strict=True)
 
 
-def train(model: nn.Module, loader: DataLoader, epochs: int, device: torch.device, lr: float = 0.001):
+def train_with_dp(
+    model: nn.Module,
+    loader: DataLoader,
+    epochs: int,
+    device: torch.device,
+    privacy_engine: PrivacyEngine,
+    noise_multiplier: float,
+    max_grad_norm: float,
+    delta: float,
+    lr: float = 0.001,
+) -> float:
+    """Real DP-SGD: per-example gradient clipping (max_grad_norm) plus
+    calibrated Gaussian noise (noise_multiplier), via Opacus. Returns the
+    actual (epsilon, delta)-DP guarantee for everything trained through
+    `privacy_engine` so far, computed by Opacus's RDP accountant — not a
+    hand-rolled approximation.
+
+    `privacy_engine` is created once per client (see run.py) and passed in
+    fresh each round: the same accountant instance keeps composing privacy
+    loss across every round that client has trained in, which is what
+    actually determines its cumulative epsilon — resetting the accountant
+    every round would silently under-report how much privacy has been
+    spent. `model`'s parameters are updated in place (Opacus wraps the same
+    module object, it doesn't copy it), so callers can read them back with
+    get_parameters(model) exactly as with the non-DP `train()`.
+    """
     model.to(device)
     model.train()
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+
+    private_model, private_optimizer, private_loader = privacy_engine.make_private(
+        module=model,
+        optimizer=optimizer,
+        data_loader=loader,
+        noise_multiplier=noise_multiplier,
+        max_grad_norm=max_grad_norm,
+    )
+
     for _ in range(epochs):
-        for images, labels in loader:
+        for images, labels in private_loader:
             images, labels = images.to(device), labels.to(device)
-            optimizer.zero_grad()
-            loss = criterion(model(images), labels)
+            private_optimizer.zero_grad()
+            loss = criterion(private_model(images), labels)
             loss.backward()
-            optimizer.step()
+            private_optimizer.step()
+
+    return privacy_engine.get_epsilon(delta=delta)
 
 
 @torch.no_grad()

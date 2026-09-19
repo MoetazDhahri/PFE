@@ -54,6 +54,22 @@ export interface ActivityEvent {
   trackId: string;
 }
 
+export interface TrainingRound {
+  id: string;
+  trackId: string;
+  round: number;
+  globalLoss: number;
+  globalAccuracy: number;
+  globalSensitivity: number;
+  globalSpecificity: number;
+  /**
+     * Real (epsilon, delta)-DP guarantee at this round from DP-SGD (Opacus RDP accountant) — the weakest per-client epsilon so far. Null for rounds imported before DP-SGD existed.
+     * @nullable
+     */
+  privacyEpsilon?: number | null;
+  recordedAt: string;
+}
+
 export interface AgentAssessment {
   id: string;
   headline: string;
@@ -85,6 +101,41 @@ export interface LearningTrack {
   primaryMetric: string;
   secondaryMetrics: string[];
   description: string;
+}
+
+export interface ClassifyChestXrayInput {
+  /** Base64-encoded image data (PNG/JPEG), no data URL prefix. */
+  imageBase64: string;
+  /**
+     * Optional. If set, assigns this image to that hospital node — increments its real dataVolume by one and logs a real activity event. The raw image itself is never persisted, only the classification result and the fact that one more sample now exists at that site (consistent with this platform's "raw imaging never leaves the site" design). Requires nodeApiKey to match that node's real credential — without it, or with a wrong key, the request is rejected with 403 rather than silently attributing the upload to a hospital that never authenticated as itself.
+     * @nullable
+     */
+  nodeId?: string | null;
+  /**
+     * Required when nodeId is set. The hospital's real per-node API key (issued once by seed.ts / issue-node-keys.ts, verified by hash — see docs/production-readiness.md).
+     * @nullable
+     */
+  nodeApiKey?: string | null;
+}
+
+export type ClassifyChestXrayResultPrediction = typeof ClassifyChestXrayResultPrediction[keyof typeof ClassifyChestXrayResultPrediction];
+
+
+export const ClassifyChestXrayResultPrediction = {
+  normal: 'normal',
+  pneumonia: 'pneumonia',
+} as const;
+
+export interface ClassifyChestXrayResult {
+  prediction: ClassifyChestXrayResultPrediction;
+  confidence: number;
+  normalProbability: number;
+  pneumoniaProbability: number;
+  modelVersion: string;
+  /** @nullable */
+  assignedNodeId: string | null;
+  /** @nullable */
+  assignedNodeName: string | null;
 }
 
 export interface AskAboutEventInput {
@@ -138,6 +189,10 @@ track?: string;
  * @maximum 100
  */
 limit?: number;
+};
+
+export type GetTrainingRoundsParams = {
+track?: string;
 };
 
 export type GetAgentAssessmentParams = {

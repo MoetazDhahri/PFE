@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, desc, eq, ne } from "drizzle-orm";
+import { and, desc, eq, ne, sql } from "drizzle-orm";
 import {
   activityEventsTable,
   agentAssessmentsTable,
@@ -7,12 +7,16 @@ import {
   db,
   learningTracksTable,
   networkOverviewTable,
+  trainingRoundsTable,
+  verifyNodeApiKey,
   type AgentAssessmentRow,
 } from "@workspace/db";
 import {
   AskAboutEventBody,
   AskAboutEventParams,
   AskAboutEventResponse,
+  ClassifyChestXrayBody,
+  ClassifyChestXrayResponse,
   GenerateAgentAssessmentBody,
   GenerateAgentAssessmentResponse,
   GetAgentActionHistoryQueryParams,
@@ -26,11 +30,16 @@ import {
   GetNetworkNodesResponse,
   GetNetworkOverviewQueryParams,
   GetNetworkOverviewResponse,
+  GetTrainingRoundsQueryParams,
+  GetTrainingRoundsResponse,
   ResolveAgentActionBody,
   ResolveAgentActionParams,
   ResolveAgentActionResponse,
 } from "@workspace/api-zod";
-import { answerEventQuestion, generateAssessment } from "../lib/agent";
+import { answerEventQuestion, generateAssessment, reviewOutcome } from "../lib/agent";
+import { classifyChestXray, InvalidImageError, ModelNotAvailableError } from "../lib/inference";
+import { logger } from "../lib/logger";
+import { broadcastNetworkUpdate } from "../lib/realtime";
 
 const router: IRouter = Router();
 
@@ -68,19 +77,6 @@ function serializeAssessment(row: AgentAssessmentRow) {
     createdAt: row.createdAt.toISOString(),
     resolvedAt: row.resolvedAt ? row.resolvedAt.toISOString() : null,
   };
-}
-
-function observedValueFor(assessment: AgentAssessmentRow, decision: "approved" | "dismissed") {
-  if (decision === "approved") {
-    return `The recommended action was carried out: "${assessment.recommendation}" No adverse effect on the round has been observed since.`;
-  }
-  return `The recommendation was dismissed and the round proceeded without the suggested action. No regression has been observed as a result.`;
-}
-
-function outcomeFor(decision: "approved" | "dismissed") {
-  return decision === "approved"
-    ? "Recommendation followed. The action is recorded and any follow-up review it implies is now the operator's responsibility."
-    : "Recommendation dismissed. The assessment and its evidence remain in the audit trail for future reference.";
 }
 
 router.get("/network/tracks", async (_req, res) => {
@@ -130,6 +126,115 @@ router.get("/network/events", async (req, res) => {
         timestamp: row.timestamp.toISOString(),
       })),
     ),
+  );
+});
+
+router.get("/network/training-rounds", async (req, res) => {
+  const params = GetTrainingRoundsQueryParams.parse(req.query);
+  const trackId = await resolveTrackId(params.track);
+  const rows = await db
+    .select()
+    .from(trainingRoundsTable)
+    .where(eq(trainingRoundsTable.trackId, trackId))
+    .orderBy(trainingRoundsTable.round);
+  res.json(
+    GetTrainingRoundsResponse.parse(
+      rows.map((row) => ({
+        ...row,
+        recordedAt: row.recordedAt.toISOString(),
+      })),
+    ),
+  );
+});
+
+router.post("/network/inference", async (req, res) => {
+  const { imageBase64, nodeId, nodeApiKey } = ClassifyChestXrayBody.parse(req.body);
+
+  let buffer: Buffer;
+  try {
+    buffer = Buffer.from(imageBase64, "base64");
+    if (buffer.length === 0) throw new Error("empty buffer");
+  } catch {
+    res.status(400).json({ message: "imageBase64 is not valid base64 image data." });
+    return;
+  }
+
+  let node: { id: string; name: string; trackId: string } | undefined;
+  if (nodeId) {
+    const [match] = await db
+      .select({
+        id: clientNodesTable.id,
+        name: clientNodesTable.name,
+        trackId: clientNodesTable.trackId,
+        apiKeyHash: clientNodesTable.apiKeyHash,
+      })
+      .from(clientNodesTable)
+      .where(eq(clientNodesTable.id, nodeId))
+      .limit(1);
+    if (!match) {
+      res.status(404).json({ message: `No hospital node found with id "${nodeId}"` });
+      return;
+    }
+    if (!match.apiKeyHash || !nodeApiKey || !verifyNodeApiKey(nodeApiKey, match.apiKeyHash)) {
+      res.status(403).json({
+        message: `Missing or invalid API key for hospital node "${nodeId}". This upload cannot be attributed to that site without its real credential.`,
+      });
+      return;
+    }
+    node = { id: match.id, name: match.name, trackId: match.trackId };
+  }
+
+  let result;
+  try {
+    result = await classifyChestXray(buffer);
+  } catch (err) {
+    if (err instanceof ModelNotAvailableError) {
+      res.status(503).json({ message: err.message });
+      return;
+    }
+    if (err instanceof InvalidImageError) {
+      res.status(400).json({ message: err.message });
+      return;
+    }
+    throw err;
+  }
+
+  const [overview] = await db
+    .select({ modelVersion: networkOverviewTable.modelVersion, round: networkOverviewTable.round })
+    .from(networkOverviewTable)
+    .where(eq(networkOverviewTable.trackId, "chest-xray"))
+    .limit(1);
+
+  if (node) {
+    const now = new Date();
+    await db
+      .update(clientNodesTable)
+      .set({ dataVolume: sql`${clientNodesTable.dataVolume} + 1`, lastSeen: now })
+      .where(eq(clientNodesTable.id, node.id));
+
+    await db.insert(activityEventsTable).values({
+      id: `${node.trackId}-upload-${now.getTime()}`,
+      trackId: node.trackId,
+      timestamp: now,
+      actor: node.name,
+      type: "client",
+      title: `New chest X-ray assigned to ${node.name}`,
+      detail: `An uploaded image was classified (${result.prediction}, ${Math.round(result.confidence * 100)}% confidence) and added to this site's local data. The image itself was not stored — only this record.`,
+      severity: "info",
+      round: overview?.round ?? 0,
+      nodeId: node.id,
+    });
+
+    broadcastNetworkUpdate(node.trackId);
+  }
+
+  res.json(
+    ClassifyChestXrayResponse.parse({
+      ...result,
+      modelVersion: overview?.modelVersion ?? "unknown",
+      assignedNodeId: node?.id ?? null,
+      assignedNodeName: node?.name ?? null,
+    }),
   );
 });
 
@@ -184,6 +289,7 @@ router.post("/network/agent/assessments", async (req, res) => {
 
   const generated = await generateAssessment(trackId);
   await db.insert(agentAssessmentsTable).values(generated);
+  broadcastNetworkUpdate(trackId);
   res.json(GenerateAgentAssessmentResponse.parse(serializeAssessment(generated as AgentAssessmentRow)));
 });
 
@@ -208,14 +314,23 @@ router.post("/network/actions/:actionId/resolve", async (req, res) => {
     return;
   }
 
-  const observedValue = observedValueFor(existing, decision);
-  const outcome = outcomeFor(decision);
+  let observedValue: string;
+  let outcome: string;
+  try {
+    ({ observedValue, outcome } = await reviewOutcome(existing, decision));
+  } catch (err) {
+    logger.error({ actionId, err }, "Agent review call failed");
+    res.status(502).json({ message: "The Federation Agent could not complete its review of this decision. Try again shortly." });
+    return;
+  }
   const resolvedAt = new Date();
 
   await db
     .update(agentAssessmentsTable)
     .set({ status: decision, resolvedAt, observedValue, outcome })
     .where(eq(agentAssessmentsTable.id, actionId));
+
+  broadcastNetworkUpdate(existing.trackId);
 
   const response = {
     actionId,
@@ -225,8 +340,8 @@ router.post("/network/actions/:actionId/resolve", async (req, res) => {
     outcome,
     message:
       decision === "approved"
-        ? "Recommendation approved. Site 04 is held for review and the remaining validated updates may continue."
-        : "Recommendation dismissed. The federation will continue while preserving the assessment in the audit trail.",
+        ? "Recommendation approved and recorded. The agent's review of the outcome is above."
+        : "Recommendation dismissed. The assessment and its evidence remain in the audit trail.",
   };
   res.json(ResolveAgentActionResponse.parse(response));
 });

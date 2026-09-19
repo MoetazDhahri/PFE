@@ -26,5 +26,10 @@ RUN pnpm --filter federated-imaging-network run build
 
 FROM nginx:alpine AS runtime
 COPY --from=build /repo/artifacts/federated-imaging-network/dist/public /usr/share/nginx/html
-COPY artifacts/federated-imaging-network/nginx.conf /etc/nginx/conf.d/default.conf
+# .template (not conf.d/default.conf directly): nginx's official image runs
+# envsubst on every file here at container startup, substituting
+# ${API_BACKEND_HOST} before nginx actually starts — see nginx.conf's
+# comment for why this proxy exists at all.
+COPY artifacts/federated-imaging-network/nginx.conf /etc/nginx/templates/default.conf.template
+ENV API_BACKEND_HOST=api
 EXPOSE 8080

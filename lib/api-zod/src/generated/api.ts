@@ -99,6 +99,29 @@ export const GetNetworkEventsResponse = zod.array(GetNetworkEventsResponseItem)
 
 
 /**
+ * @summary List per-round global evaluation metrics for a completed real training run
+ */
+export const getTrainingRoundsQueryTrackDefault = `chest-xray`;
+
+export const GetTrainingRoundsQueryParams = zod.object({
+  "track": zod.coerce.string().default(getTrainingRoundsQueryTrackDefault)
+})
+
+export const GetTrainingRoundsResponseItem = zod.object({
+  "id": zod.string(),
+  "trackId": zod.string(),
+  "round": zod.number().int(),
+  "globalLoss": zod.number(),
+  "globalAccuracy": zod.number(),
+  "globalSensitivity": zod.number(),
+  "globalSpecificity": zod.number(),
+  "privacyEpsilon": zod.number().nullish().describe('Real (epsilon, delta)-DP guarantee at this round from DP-SGD (Opacus RDP accountant) — the weakest per-client epsilon so far. Null for rounds imported before DP-SGD existed.'),
+  "recordedAt": zod.string()
+})
+export const GetTrainingRoundsResponse = zod.array(GetTrainingRoundsResponseItem)
+
+
+/**
  * @summary Get the latest AI federation assessment
  */
 export const getAgentAssessmentQueryTrackDefault = `chest-xray`;
@@ -202,6 +225,27 @@ export const AskAboutEventResponse = zod.object({
   "question": zod.string(),
   "answer": zod.string(),
   "answeredAt": zod.string()
+})
+
+
+/**
+ * Runs a real forward pass through the ONNX-exported model produced by a completed ml/federation-engine training run (see docs/production-readiness.md). Not an LLM call and not a diagnostic device — a real but small research model trained on PneumoniaMNIST. Returns 503 if no trained model has been imported yet.
+ * @summary Classify an uploaded chest X-ray image with the real trained chest-xray model
+ */
+export const ClassifyChestXrayBody = zod.object({
+  "imageBase64": zod.string().describe('Base64-encoded image data (PNG/JPEG), no data URL prefix.'),
+  "nodeId": zod.string().nullish().describe('Optional. If set, assigns this image to that hospital node — increments its real dataVolume by one and logs a real activity event. The raw image itself is never persisted, only the classification result and the fact that one more sample now exists at that site (consistent with this platform\'s "raw imaging never leaves the site" design). Requires nodeApiKey to match that node\'s real credential — without it, or with a wrong key, the request is rejected with 403 rather than silently attributing the upload to a hospital that never authenticated as itself.'),
+  "nodeApiKey": zod.string().nullish().describe('Required when nodeId is set. The hospital\'s real per-node API key (issued once by seed.ts / issue-node-keys.ts, verified by hash — see docs/production-readiness.md).')
+})
+
+export const ClassifyChestXrayResponse = zod.object({
+  "prediction": zod.enum(['normal', 'pneumonia']),
+  "confidence": zod.number(),
+  "normalProbability": zod.number(),
+  "pneumoniaProbability": zod.number(),
+  "modelVersion": zod.string(),
+  "assignedNodeId": zod.string().nullable(),
+  "assignedNodeName": zod.string().nullable()
 })
 
 

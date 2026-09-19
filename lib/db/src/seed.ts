@@ -1,4 +1,5 @@
 import { db, pool } from "./index";
+import { generateNodeApiKey, hashNodeApiKey } from "./node-auth";
 import {
   activityEventsTable,
   agentAssessmentsTable,
@@ -61,13 +62,14 @@ const siteDefinitions = [
   ["Meridian Health", "MER", "São Paulo", "Hospital", 8120],
 ] as const;
 
-function nodesForTrack(trackId: string, now: Date): NewClientNodeRow[] {
+function nodesForTrack(trackId: string, now: Date, apiKeyHashesBySiteId: Map<string, string>): NewClientNodeRow[] {
   const aucOffset = trackId === "brain-mri" ? -0.05 : trackId === "ct-lesion" ? -0.09 : 0;
   return siteDefinitions.map(([name, shortName, region, modality, dataVolume], index) => {
     const status = index === 3 ? "attention" : index === 7 ? "syncing" : "online";
     const localAuc = Number((0.86 + (index % 4) * 0.018 + aucOffset).toFixed(3));
+    const id = `site-${index + 1}`;
     return {
-      id: `site-${index + 1}`,
+      id,
       trackId,
       name,
       shortName,
@@ -80,6 +82,9 @@ function nodesForTrack(trackId: string, now: Date): NewClientNodeRow[] {
       lastSeen: new Date(now.getTime() - index * 71000),
       x: 14 + ((index * 19) % 75),
       y: 17 + ((index * 31) % 66),
+      // Same hash across every track this site appears in — a hospital
+      // has one credential, not one per learning track.
+      apiKeyHash: apiKeyHashesBySiteId.get(id) ?? null,
     };
   });
 }
@@ -412,14 +417,33 @@ async function seed() {
   }
 
   const now = new Date();
+
+  // Real per-hospital credentials, generated once here — same pattern as
+  // GitHub/Stripe: the raw key is shown exactly once (below) and only its
+  // hash is ever persisted. POST /network/inference requires the matching
+  // raw key before it will attribute an upload to a given site.
+  const rawKeysBySiteId = new Map<string, string>();
+  const hashesBySiteId = new Map<string, string>();
+  siteDefinitions.forEach((_site, index) => {
+    const id = `site-${index + 1}`;
+    const rawKey = generateNodeApiKey();
+    rawKeysBySiteId.set(id, rawKey);
+    hashesBySiteId.set(id, hashNodeApiKey(rawKey));
+  });
+
   await db.insert(learningTracksTable).values(tracks);
   for (const track of tracks) {
-    await db.insert(clientNodesTable).values(nodesForTrack(track.id, now));
+    await db.insert(clientNodesTable).values(nodesForTrack(track.id, now, hashesBySiteId));
     await db.insert(networkOverviewTable).values(overviewForTrack(track, now));
     await db.insert(activityEventsTable).values(eventsForTrack(track, now));
     await db.insert(agentAssessmentsTable).values(assessmentsForTrack(track, now));
   }
   console.log(`Seeded ${tracks.length} tracks with nodes, overview, events, and agent assessments.`);
+
+  console.log("\nHospital API keys (shown once — store these now):");
+  for (const [siteId, rawKey] of rawKeysBySiteId) {
+    console.log(`  ${siteId}: ${rawKey}`);
+  }
 }
 
 seed()

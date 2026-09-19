@@ -8,6 +8,7 @@ import {
   db,
   learningTracksTable,
   networkOverviewTable,
+  type AgentAssessmentRow,
   type NewAgentAssessmentRow,
 } from "@workspace/db";
 import { logger } from "./logger";
@@ -131,6 +132,117 @@ Your boundaries:
 - If the available data genuinely doesn't answer the question, say so plainly instead of guessing.
 - You may call the read-only lookup tools if they would help answer the question, but you don't have to — for a simple question, answering directly from the event record you were given is fine.
 - Answer in a few sentences of plain text. Do not call any tool as your final action — your final response must be a plain-text answer, not a tool call.`;
+
+const REVIEW_OUTCOME_SYSTEM_PROMPT = `You are the Federation Agent for a federated medical-imaging research network, reviewing what happened after a human operator approved or dismissed one of your earlier recommendations.
+
+Your boundaries:
+- You only see aggregate, non-patient telemetry — round status, per-site metrics, and the event log. Never invent a site name, metric value, or event that no tool returned to you.
+- This is a research and operations console, not a clinical tool. Never phrase anything as a diagnosis, a treatment recommendation, or a claim about patient outcomes.
+- Ground your review in the current telemetry: use the tools to check whether the site or metric your original recommendation was about has changed state since. If nothing has changed yet (e.g. the next round hasn't run), say so plainly instead of inventing an effect.
+- Call review_outcome exactly once with your final result, after checking current state with at least one tool call.`;
+
+const REVIEW_OUTCOME_TOOLS: ChatCompletionTool[] = [
+  ...QA_TOOLS,
+  {
+    type: "function",
+    function: {
+      name: "review_outcome",
+      description: "Submit your final review of what has been observed since the operator's decision. Call this exactly once.",
+      parameters: {
+        type: "object",
+        required: ["observedValue", "outcome"],
+        properties: {
+          observedValue: {
+            type: "string",
+            description: "What has actually been observed in the telemetry since the decision — grounded in real tool results, not assumed.",
+          },
+          outcome: {
+            type: "string",
+            description: "A short statement of the net result of the operator's decision and what it means going forward.",
+          },
+        },
+      },
+    },
+  },
+];
+
+const ReviewOutcomeSchema = z.object({
+  observedValue: z.string().min(1),
+  outcome: z.string().min(1),
+});
+
+// Higher than QA_MAX_TURNS: a review typically needs several lookup calls
+// (overview, nodes, events) *plus* one further turn to actually submit
+// review_outcome — 3 turns can be fully consumed by lookups alone, leaving
+// none for the final call.
+const REVIEW_MAX_TURNS = 5;
+
+export async function reviewOutcome(
+  assessment: AgentAssessmentRow,
+  decision: "approved" | "dismissed",
+): Promise<{ observedValue: string; outcome: string }> {
+  const openai = getClient();
+
+  const messages: ChatCompletionMessageParam[] = [
+    { role: "system", content: REVIEW_OUTCOME_SYSTEM_PROMPT },
+    {
+      role: "user",
+      content: `Here is the assessment you previously submitted for track "${assessment.trackId}":\n${JSON.stringify(
+        {
+          headline: assessment.headline,
+          summary: assessment.summary,
+          recommendation: assessment.recommendation,
+          expectedValue: assessment.expectedValue,
+          evidence: assessment.evidence,
+        },
+        null,
+        2,
+      )}\n\nThe human operator just ${decision === "approved" ? "approved and carried out" : "dismissed"} this recommendation. Check current telemetry and report what has actually been observed since.`,
+    },
+  ];
+
+  for (let turn = 0; turn < REVIEW_MAX_TURNS; turn++) {
+    const response = await openai.chat.completions.create({
+      model: MODEL,
+      max_completion_tokens: 800,
+      tools: REVIEW_OUTCOME_TOOLS,
+      messages,
+    });
+
+    const message = response.choices[0]?.message;
+    if (!message) {
+      throw new Error("Agent returned no message.");
+    }
+    messages.push(message);
+
+    const toolCalls = (message.tool_calls ?? []).filter(
+      (call): call is Extract<typeof call, { type: "function" }> => call.type === "function",
+    );
+    const submission = toolCalls.find((call) => call.function.name === "review_outcome");
+    if (submission) {
+      return ReviewOutcomeSchema.parse(parseToolArguments(submission.function.arguments));
+    }
+
+    if (toolCalls.length === 0) {
+      throw new Error(
+        `Agent stopped (finish_reason=${response.choices[0]?.finish_reason}) without calling review_outcome.`,
+      );
+    }
+
+    for (const call of toolCalls) {
+      const input = parseToolArguments(call.function.arguments);
+      logger.info({ trackId: assessment.trackId, tool: call.function.name, input }, "Agent review tool call");
+      const result = await executeTool(assessment.trackId, call.function.name, input);
+      messages.push({
+        role: "tool",
+        tool_call_id: call.id,
+        content: JSON.stringify(result),
+      });
+    }
+  }
+
+  throw new Error(`Agent exceeded ${REVIEW_MAX_TURNS} turns without calling review_outcome.`);
+}
 
 const SubmittedAssessmentSchema = z.object({
   headline: z.string().min(1),

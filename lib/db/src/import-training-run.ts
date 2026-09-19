@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { eq } from "drizzle-orm";
-import { activityEventsTable, clientNodesTable, db, networkOverviewTable, pool } from "./index";
+import { activityEventsTable, clientNodesTable, db, networkOverviewTable, pool, trainingRoundsTable } from "./index";
 
 // Imports a completed real federated training run (produced by
 // ml/federation-engine/run.py) and replaces this repo's seeded chest-xray
@@ -17,6 +17,7 @@ interface FinalClientResult {
   accuracy: number;
   sensitivity: number;
   specificity: number;
+  epsilon: number;
 }
 
 interface ClientLabelCount {
@@ -31,6 +32,15 @@ interface RoundHistoryEntry {
   global_accuracy: number;
   global_sensitivity: number;
   global_specificity: number;
+  privacy_epsilon: number;
+}
+
+interface DifferentialPrivacyInfo {
+  mechanism: string;
+  noise_multiplier: number;
+  max_grad_norm: number;
+  delta: number;
+  final_privacy_epsilon: number | null;
 }
 
 interface TrainingRunResults {
@@ -44,6 +54,7 @@ interface TrainingRunResults {
   round_history: RoundHistoryEntry[];
   final_client_results: FinalClientResult[];
   global_test_metrics: { accuracy: number; auroc: number; auprc: number; test_samples: number };
+  differential_privacy: DifferentialPrivacyInfo;
 }
 
 function loadResults(path: string): TrainingRunResults {
@@ -69,10 +80,19 @@ async function importTrainingRun(resultsPath: string) {
         localAuc: Number(client.accuracy.toFixed(4)),
         dataVolume: labelCounts.total,
         status,
+        privacyStatus: `ε=${client.epsilon.toFixed(2)} (DP-SGD)`,
         lastSeen: now,
       })
       .where(eq(clientNodesTable.id, siteId));
   }
+
+  const [existingOverview] = await db
+    .select({ totalSites: networkOverviewTable.totalSites })
+    .from(networkOverviewTable)
+    .where(eq(networkOverviewTable.trackId, TRACK_ID))
+    .limit(1);
+
+  const finalEpsilon = results.differential_privacy.final_privacy_epsilon;
 
   await db
     .update(networkOverviewTable)
@@ -80,13 +100,34 @@ async function importTrainingRun(resultsPath: string) {
       round: results.num_rounds,
       roundStatus: "Completed (real FedAvg run)",
       connectedSites: results.num_clients,
-      totalSites: results.num_clients,
+      totalSites: existingOverview?.totalSites ?? results.num_clients,
       globalAuc: Number(results.global_test_metrics.auroc.toFixed(4)),
       globalAccuracy: Number(results.global_test_metrics.accuracy.toFixed(4)),
       modelVersion: `cxr-fl-real-${results.generated_at.slice(0, 10)}`,
+      ...(finalEpsilon !== null
+        ? {
+            privacyBudget: Number(finalEpsilon.toFixed(2)),
+            privacyStatus: `Real ε (DP-SGD, δ=${results.differential_privacy.delta})`,
+          }
+        : {}),
       lastUpdated: now,
     })
     .where(eq(networkOverviewTable.trackId, TRACK_ID));
+
+  await db.delete(trainingRoundsTable).where(eq(trainingRoundsTable.trackId, TRACK_ID));
+  await db.insert(trainingRoundsTable).values(
+    results.round_history.map((entry) => ({
+      id: `${TRACK_ID}-round-${entry.round}-${now.getTime()}`,
+      trackId: TRACK_ID,
+      round: entry.round,
+      globalLoss: Number(entry.global_loss.toFixed(4)),
+      globalAccuracy: Number(entry.global_accuracy.toFixed(4)),
+      globalSensitivity: Number(entry.global_sensitivity.toFixed(4)),
+      globalSpecificity: Number(entry.global_specificity.toFixed(4)),
+      privacyEpsilon: Number(entry.privacy_epsilon.toFixed(4)),
+      recordedAt: now,
+    })),
+  );
 
   const lastRound = results.round_history[results.round_history.length - 1];
   await db.insert(activityEventsTable).values({
@@ -96,7 +137,7 @@ async function importTrainingRun(resultsPath: string) {
     actor: "Coordinator",
     type: "aggregation",
     title: `Real FedAvg training run completed: ${results.num_rounds} rounds, ${results.num_clients} clients`,
-    detail: `PyTorch + Flower on ${results.device}. Global test AUROC ${results.global_test_metrics.auroc.toFixed(3)}, AUPRC ${results.global_test_metrics.auprc.toFixed(3)} on ${results.global_test_metrics.test_samples} held-out PneumoniaMNIST test images. Final round global validation accuracy ${lastRound.global_accuracy.toFixed(3)}.`,
+    detail: `Direct PyTorch FedAvg with real DP-SGD on ${results.device}. Global test AUROC ${results.global_test_metrics.auroc.toFixed(3)}, AUPRC ${results.global_test_metrics.auprc.toFixed(3)} on ${results.global_test_metrics.test_samples} held-out PneumoniaMNIST test images. Final round global validation accuracy ${lastRound.global_accuracy.toFixed(3)}${finalEpsilon !== null ? `, privacy budget ε=${finalEpsilon.toFixed(2)} (δ=${results.differential_privacy.delta})` : ""}.`,
     severity: "success",
     round: results.num_rounds,
     nodeId: null,

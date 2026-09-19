@@ -72,6 +72,17 @@ export default defineConfig({
     fs: {
       strict: true,
     },
+    // Without this, /api/* requests from the Vite dev server 404 against
+    // Vite itself instead of reaching the API server — the two were never
+    // actually wired together for local dev. In production, nginx (see
+    // nginx.conf) plays this same role.
+    proxy: {
+      '/api': {
+        target: process.env.API_PROXY_TARGET ?? 'http://localhost:8080',
+        changeOrigin: true,
+        ws: true,
+      },
+    },
   },
   preview: {
     port,
