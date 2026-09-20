@@ -1,0 +1,134 @@
+{
+  "generated_at": "2026-09-19T05:18:40Z",
+  "duration_seconds": 43.0,
+  "device": "cpu",
+  "dataset_name": "pneumoniamnist",
+  "num_clients": 3,
+  "num_rounds": 8,
+  "dirichlet_alpha": 0.5,
+  "client_label_counts": [
+    {
+      "total": 2906,
+      "class_0_normal": 773,
+      "class_1_pneumonia": 2133
+    },
+    {
+      "total": 824,
+      "class_0_normal": 35,
+      "class_1_pneumonia": 789
+    },
+    {
+      "total": 271,
+      "class_0_normal": 231,
+      "class_1_pneumonia": 40
+    }
+  ],
+  "round_history": [
+    {
+      "round": 1,
+      "global_loss": 0.5132081945343773,
+      "global_accuracy": 0.8005657708628006,
+      "global_sensitivity": 0.9321074964639321,
+      "global_specificity": 0.06789250353606789,
+      "privacy_epsilon": 12.553081154206831
+    },
+    {
+      "round": 2,
+      "global_loss": 0.49216379935535715,
+      "global_accuracy": 0.7524752475247525,
+      "global_sensitivity": 1.0,
+      "global_specificity": 0.0,
+      "privacy_epsilon": 16.023734118533277
+    },
+    {
+      "round": 3,
+      "global_loss": 0.4935834818378702,
+      "global_accuracy": 0.7595473833097596,
+      "global_sensitivity": 1.0,
+      "global_specificity": 0.0082795736019595,
+      "privacy_epsilon": 18.77466674216725
+    },
+    {
+      "round": 4,
+      "global_loss": 0.5062729653914207,
+      "global_accuracy": 0.8005657708628006,
+      "global_sensitivity": 0.9321074964639321,
+      "global_specificity": 0.06789250353606789,
+      "privacy_epsilon": 21.169127101405333
+    },
+    {
+      "round": 5,
+      "global_loss": 0.4881924758790406,
+      "global_accuracy": 0.8005657708628006,
+      "global_sensitivity": 0.9321074964639321,
+      "global_specificity": 0.06789250353606789,
+      "privacy_epsilon": 23.340943108079905
+    },
+    {
+      "round": 6,
+      "global_loss": 0.4925904003784714,
+      "global_accuracy": 0.8005657708628006,
+      "global_sensitivity": 0.9321074964639321,
+      "global_specificity": 0.06789250353606789,
+      "privacy_epsilon": 25.356869649101007
+    },
+    {
+      "round": 7,
+      "global_loss": 0.4730321103562054,
+      "global_accuracy": 0.8005657708628006,
+      "global_sensitivity": 0.9321074964639321,
+      "global_specificity": 0.06789250353606789,
+      "privacy_epsilon": 27.25585463206683
+    },
+    {
+      "round": 8,
+      "global_loss": 0.5209863819866909,
+      "global_accuracy": 0.8005657708628006,
+      "global_sensitivity": 0.9321074964639321,
+      "global_specificity": 0.06789250353606789,
+      "privacy_epsilon": 29.062950333098772
+    }
+  ],
+  "final_client_results": [
+    {
+      "partition_id": 0,
+      "num_examples": 513,
+      "loss": 0.620171740738272,
+      "accuracy": 0.7524366471734892,
+      "sensitivity": 1.0,
+      "specificity": 0.0,
+      "epsilon": 12.695971501621845
+    },
+    {
+      "partition_id": 1,
+      "num_examples": 146,
+      "loss": 0.2113975074193249,
+      "accuracy": 0.952054794520548,
+      "sensitivity": 1.0,
+      "specificity": 0.0,
+      "epsilon": 20.341927552871404
+    },
+    {
+      "partition_id": 2,
+      "num_examples": 48,
+      "loss": 0.4026090204715729,
+      "accuracy": 0.8541666666666666,
+      "sensitivity": 0.0,
+      "specificity": 1.0,
+      "epsilon": 29.062950333098772
+    }
+  ],
+  "global_test_metrics": {
+    "accuracy": 0.625,
+    "auroc": 0.7402914749068596,
+    "auprc": 0.8128731680883955,
+    "test_samples": 624
+  },
+  "differential_privacy": {
+    "mechanism": "DP-SGD (Opacus): per-example gradient clipping + Gaussian noise",
+    "noise_multiplier": 0.5,
+    "max_grad_norm": 5.0,
+    "delta": 1e-05,
+    "final_privacy_epsilon": 29.062950333098772
+  }
+}

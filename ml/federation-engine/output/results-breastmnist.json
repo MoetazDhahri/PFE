@@ -1,0 +1,116 @@
+{
+  "generated_at": "2026-09-19T04:38:32Z",
+  "duration_seconds": 5.6,
+  "device": "cpu",
+  "dataset_name": "breastmnist",
+  "num_clients": 3,
+  "num_rounds": 8,
+  "dirichlet_alpha": 0.5,
+  "client_label_counts": [
+    {
+      "total": 103,
+      "class_0_normal": 88,
+      "class_1_pneumonia": 15
+    },
+    {
+      "total": 316,
+      "class_0_normal": 28,
+      "class_1_pneumonia": 288
+    },
+    {
+      "total": 44,
+      "class_0_normal": 10,
+      "class_1_pneumonia": 34
+    }
+  ],
+  "round_history": [
+    {
+      "round": 1,
+      "global_loss": 0.3836471819015871,
+      "global_accuracy": 0.9036144578313253,
+      "global_sensitivity": 0.7710843373493976,
+      "global_specificity": 0.2289156626506024
+    },
+    {
+      "round": 2,
+      "global_loss": 0.4033784026122955,
+      "global_accuracy": 0.7469879518072289,
+      "global_sensitivity": 1.0,
+      "global_specificity": 0.0
+    },
+    {
+      "round": 3,
+      "global_loss": 0.3847236159336136,
+      "global_accuracy": 0.8795180722891566,
+      "global_sensitivity": 0.8473895582329318,
+      "global_specificity": 0.18599397590361447
+    },
+    {
+      "round": 4,
+      "global_loss": 0.38044619847493,
+      "global_accuracy": 0.9036144578313253,
+      "global_sensitivity": 0.7710843373493976,
+      "global_specificity": 0.2289156626506024
+    },
+    {
+      "round": 5,
+      "global_loss": 0.3758153326540108,
+      "global_accuracy": 0.891566265060241,
+      "global_sensitivity": 0.8473895582329318,
+      "global_specificity": 0.2003012048192771
+    },
+    {
+      "round": 6,
+      "global_loss": 0.40092816194856024,
+      "global_accuracy": 0.8072289156626506,
+      "global_sensitivity": 0.8473895582329318,
+      "global_specificity": 0.10015060240963855
+    },
+    {
+      "round": 7,
+      "global_loss": 0.3709608079439186,
+      "global_accuracy": 0.9036144578313253,
+      "global_sensitivity": 0.7710843373493976,
+      "global_specificity": 0.2289156626506024
+    },
+    {
+      "round": 8,
+      "global_loss": 0.37620491292103225,
+      "global_accuracy": 0.9036144578313253,
+      "global_sensitivity": 0.7710843373493976,
+      "global_specificity": 0.2289156626506024
+    }
+  ],
+  "final_client_results": [
+    {
+      "partition_id": 0,
+      "num_examples": 19,
+      "loss": 0.6852974891662598,
+      "accuracy": 0.8421052631578947,
+      "sensitivity": 0.0,
+      "specificity": 1.0
+    },
+    {
+      "partition_id": 1,
+      "num_examples": 56,
+      "loss": 0.26984250119754244,
+      "accuracy": 0.9285714285714286,
+      "sensitivity": 1.0,
+      "specificity": 0.0
+    },
+    {
+      "partition_id": 2,
+      "num_examples": 8,
+      "loss": 0.38664692640304565,
+      "accuracy": 0.875,
+      "sensitivity": 1.0,
+      "specificity": 0.0
+    }
+  ],
+  "global_test_metrics": {
+    "accuracy": 0.7307692307692307,
+    "auroc": 0.7046783625730995,
+    "auprc": 0.8459654907816538,
+    "test_samples": 156
+  }
+}
