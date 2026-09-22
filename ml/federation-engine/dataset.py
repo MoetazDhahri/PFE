@@ -22,6 +22,13 @@ from medmnist import INFO
 NUM_CLIENTS = 3
 DIRICHLET_ALPHA = 0.5  # lower = more non-IID (label-skewed) across clients
 
+# Simulated hospital compute tier per client id — a real-world stand-in for
+# e.g. a large hospital's GPU server ("high") vs a small clinic's laptop
+# ("low"). Used by run.py to decide which client the resilience demo
+# (SIMULATE_CLIENT_FAILURE) can knock out; cycles if NUM_CLIENTS > 3.
+_TIER_CYCLE = ["high", "mid", "low"]
+CLIENT_TIERS = [_TIER_CYCLE[i % len(_TIER_CYCLE)] for i in range(NUM_CLIENTS)]
+
 
 class ArrayDataset(Dataset):
     def __init__(self, images: np.ndarray, labels: np.ndarray):

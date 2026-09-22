@@ -9,9 +9,11 @@ Run inside the ml/federation-engine Docker image (see Dockerfile / README):
 
 import numpy as np
 import pytest
+import torch
 
-from run import fedavg
+from run import _simulated_failure_mode, fedavg
 from dataset import _dirichlet_partition
+from optimize import apply_magnitude_pruning, payload_size_bytes
 
 
 def test_fedavg_equal_weights_averages():
@@ -80,3 +82,67 @@ def test_dirichlet_partition_raises_when_min_samples_unreachable():
     labels = np.array([0, 1] * 5)
     with pytest.raises(RuntimeError):
         _dirichlet_partition(labels, num_clients=5, alpha=0.5)
+
+
+def test_fedavg_continues_when_a_client_is_dropped():
+    # Resilience: fedavg() doesn't know or care that a client failed —
+    # the caller (run.py's _train_rounds) just omits it from both lists.
+    # Only 2 of a notional 3 clients' results are passed in here.
+    surviving_client_a = [np.array([0.0, 10.0])]
+    surviving_client_b = [np.array([2.0, 20.0])]
+    result = fedavg([surviving_client_a, surviving_client_b], weights=[100, 300])
+
+    assert np.allclose(result[0], [1.5, 17.5])
+
+
+TIERS = ["high", "mid", "low"]
+
+
+def test_simulated_failure_mode_is_none_when_disabled():
+    assert _simulated_failure_mode(2, 3, TIERS, False, "low", 3, "crash") is None
+
+
+def test_simulated_failure_mode_is_none_on_wrong_round():
+    assert _simulated_failure_mode(2, 4, TIERS, True, "low", 3, "crash") is None
+
+
+def test_simulated_failure_mode_is_none_for_wrong_tier():
+    # Client 0 is "high" tier; only the "low" tier client (2) should fail.
+    assert _simulated_failure_mode(0, 3, TIERS, True, "low", 3, "crash") is None
+
+
+def test_simulated_failure_mode_triggers_for_matching_tier_and_round():
+    assert _simulated_failure_mode(2, 3, TIERS, True, "low", 3, "crash") == "crash"
+    assert _simulated_failure_mode(2, 3, TIERS, True, "low", 3, "slow") == "slow"
+
+
+def test_apply_magnitude_pruning_achieves_requested_sparsity():
+    model = torch.nn.Sequential(torch.nn.Linear(64, 64), torch.nn.Linear(64, 8))
+    sparsity = apply_magnitude_pruning(model, amount=0.3)
+
+    assert 0.25 <= sparsity <= 0.35
+
+
+def test_apply_magnitude_pruning_bakes_zeros_in_permanently():
+    # prune.remove() must actually be called — otherwise the zeros only
+    # exist behind a forward-hook re-parametrization, and a plain
+    # state_dict() walk (get_parameters() in train_utils.py) would still
+    # see the original dense weights.
+    model = torch.nn.Linear(32, 32)
+    apply_magnitude_pruning(model, amount=0.5)
+
+    assert not hasattr(model, "weight_orig")
+    assert (model.weight == 0).any()
+
+
+def test_payload_size_bytes_shrinks_after_compression_when_sparse():
+    rng = np.random.default_rng(0)
+    dense = [rng.standard_normal(2000).astype(np.float32)]
+    mostly_zero = [np.zeros(2000, dtype=np.float32)]
+    mostly_zero[0][:100] = rng.standard_normal(100).astype(np.float32)
+
+    dense_sizes = payload_size_bytes(dense)
+    sparse_sizes = payload_size_bytes(mostly_zero)
+
+    assert dense_sizes["raw_bytes"] == sparse_sizes["raw_bytes"]
+    assert sparse_sizes["gzip_bytes"] < dense_sizes["gzip_bytes"]
